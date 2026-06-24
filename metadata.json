@@ -1,0 +1,6 @@
+{
+  "name": "AI Print Assistant",
+  "description": "Desktop Companion and interactive Simulation Platform for AI Print Assistant, including virtual directory watcher, ID card generator, passport photo studio, setup diagnostic, and key license manager.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
