@@ -1,3 +1,4 @@
+declare const __APP_VERSION__: string;
 import React, { useState, useEffect } from 'react';
 import { useTheme } from './context/ThemeContext';
 import { 
@@ -1164,12 +1165,7 @@ export default function App() {
   const isExpiredAndLocked = license.licenseEnabled && license.license.status === 'expired';
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-800 flex flex-col justify-between font-sans relative overflow-x-hidden" data-theme={theme}>
-      
-      {/* Premium ambient light drift blobs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-200/20 rounded-full filter blur-[100px] pointer-events-none -translate-y-1/2" />
-      <div className="absolute top-1/3 right-10 w-[600px] h-[600px] bg-sky-200/10 rounded-full filter blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-10 left-20 w-[450px] h-[450px] bg-pink-200/10 rounded-full filter blur-[90px] pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans relative overflow-x-hidden">
       
       {/* Dynamic Expiry Guard Anti-Theft Lock Screen overlay */}
       {isExpiredAndLocked && (
@@ -1225,149 +1221,130 @@ export default function App() {
         </div>
       )}
 
-      {/* Primary Container layout */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
-        
-        {/* Top App Header bar */}
-        <header className="aipa-header bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4.5 text-white flex flex-col md:flex-row items-center justify-between shadow-2xl space-y-4 md:space-y-0 relative select-none">
-          <div className="flex items-center space-x-3.5 text-left">
-            <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-md">
-              <LayoutGrid className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="aipa-header-title text-sm font-bold tracking-tight text-indigo-50 font-display">
-                {license.customer.shopName || 'AI Print Assistant'}
-              </h1>
-              <p className="aipa-header-sub text-[10.5px] text-slate-400 font-mono flex items-center space-x-2 mt-0.5">
-                <span className="text-indigo-400 font-semibold">{license.customer.ownerName || 'Print Management System'}</span>
-                <span>•</span>
-                <span>{license.customer.location || 'v1.0'}</span>
-              </p>
-            </div>
+      {/* ── Top header bar ────────────────────────────────────── */}
+      <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm select-none flex-shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
+            <LayoutGrid className="w-4 h-4" />
           </div>
-
-          {/* Active status indicators bento */}
-          <div className="flex flex-wrap items-center justify-center gap-3 font-mono text-[9.5px]">
-            {/* Sumatra indicator */}
-            <div className="aipa-chip bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${setupStatus.sumatraPdfDetected ? 'bg-emerald-500' : 'bg-rose-500 animate-ping'}`} />
-              <span className="text-slate-450 uppercase">SUMATRA: {setupStatus.sumatraPdfDetected ? 'OK' : 'ERR'}</span>
-            </div>
-
-            {/* Watcher daemon status indicator */}
-            <div className="aipa-chip bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${isDaemonActive ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
-              <span className="text-slate-450 uppercase">DAEMON: {isDaemonActive ? 'ACTIVE' : 'STANDBY'}</span>
-            </div>
-
-            {/* License Mode */}
-            <div className="aipa-chip bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${license.licenseEnabled ? 'bg-indigo-400' : 'bg-amber-400'}`} />
-              <span className="text-indigo-400 font-bold uppercase">{license.licenseEnabled ? 'ENFORCED' : 'DEV_OK'}</span>
-            </div>
+          <div>
+            <h1 className="text-sm font-bold text-slate-900 leading-tight">
+              {license.customer.shopName || 'AI Print Assistant'}
+            </h1>
+            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+              Print Management System&nbsp;•&nbsp;<span className="text-indigo-500 font-semibold">v{(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.2')}</span>
+            </p>
           </div>
-        </header>
+        </div>
+        <div className="flex items-center gap-2 font-mono text-[9.5px]">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center space-x-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${setupStatus.sumatraPdfDetected ? 'bg-emerald-500' : 'bg-rose-500 animate-ping'}`} />
+            <span className="text-slate-500 uppercase">SUMATRA: {setupStatus.sumatraPdfDetected ? 'OK' : 'ERR'}</span>
+          </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center space-x-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${isDaemonActive ? 'bg-emerald-400 animate-ping' : 'bg-slate-400'}`} />
+            <span className="text-slate-500 uppercase">DAEMON: {isDaemonActive ? 'ACTIVE' : 'STANDBY'}</span>
+          </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center space-x-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${license.licenseEnabled ? 'bg-indigo-400' : 'bg-amber-400'}`} />
+            <span className="text-indigo-500 font-bold uppercase">{license.licenseEnabled ? 'LICENSED' : 'DEV_OK'}</span>
+          </div>
+        </div>
+      </header>
 
-        {/* Bento Tabs Nav Navigation menu */}
-        <nav className="aipa-nav flex flex-wrap border-b border-slate-200 gap-1.5 select-none">
-          {[
-            { key: 'watcher', icon: <FolderSync className="w-4 h-4" />, label: 'Folder Watcher Spools' },
-            { key: 'idcard',  icon: <Layers className="w-4 h-4" />,     label: 'ID Card Studio' },
-            { key: 'passport',icon: <Sparkles className="w-4 h-4" />,   label: 'Passport Studio' },
-            { key: 'config',  icon: <Settings className="w-4 h-4" />,   label: 'Setup & Bindings' },
-            { key: 'license', icon: <Key className="w-4 h-4" />,        label: 'Licenses Key Admin' },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`aipa-tab px-4.5 py-3 text-xs font-semibold rounded-t-xl transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
-                activeTab === tab.key
-                  ? 'aipa-tab-active bg-white border-indigo-600 text-indigo-700 font-bold shadow-sm'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </nav>
+      {/* ── Body: sidebar + content ───────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="w-56 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+          <nav className="flex-1 py-4 px-3 space-y-1 select-none">
+            {[
+              { key: 'watcher',  icon: <FolderSync className="w-4 h-4" />, label: 'Folder Watcher' },
+              { key: 'idcard',   icon: <Layers className="w-4 h-4" />,     label: 'ID Card Studio' },
+              { key: 'passport', icon: <Sparkles className="w-4 h-4" />,   label: 'Passport Studio' },
+              { key: 'config',   icon: <Settings className="w-4 h-4" />,   label: 'Setup & Bindings' },
+              { key: 'license',  icon: <Key className="w-4 h-4" />,        label: 'License Admin' },
+            ].map(tab => (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                className={`w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  activeTab === tab.key
+                    ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 shadow-sm'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                }`}>
+                <span className={activeTab === tab.key ? 'text-indigo-600' : 'text-slate-400'}>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="px-4 py-3 border-t border-slate-100">
+            <p className="text-[9px] text-slate-400 font-mono leading-relaxed">
+              {license.customer.ownerName || 'AI Print Assistant'}<br />
+              {license.customer.location || 'Dubai, UAE'}
+            </p>
+          </div>
+        </aside>
 
-        {/* Selected Tabs View window container */}
-        <main className="transition-all duration-300">
-          {activeTab === 'watcher' && (
-            <FolderWatcherTab 
-              pricing={pricing}
-              queuedFiles={queuedFiles}
-              onUploadFile={handleUploadFile}
-              onClearQueue={() => setQueuedFiles([])}
-              onStartDaemon={handleStartDaemon}
-              isDaemonActive={isDaemonActive}
-              onRemoveFile={handleRemoveFile}
-              printedHistory={printedHistory}
-              customConfigs={customConfigs}
-              onSaveCustomConfigs={setCustomConfigs}
-              simulateError={simulateError}
-              onToggleSimulateError={() => setSimulateError(!simulateError)}
-              onAddHistory={handleAddHistory}
-              onClearHistory={() => setPrintedHistory([])}
-              onAddQueuedFile={(f) => setQueuedFiles(prev => [...prev, f])}
-              onPrintSingleFile={handlePrintSingleFile}
-            />
-          )}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-6">
+            {activeTab === 'watcher' && (
+              <FolderWatcherTab
+                pricing={pricing}
+                onPricingChange={setPricing}
+                config={config}
+                queuedFiles={queuedFiles}
+                onUploadFile={handleUploadFile}
+                onClearQueue={() => setQueuedFiles([])}
+                onStartDaemon={handleStartDaemon}
+                isDaemonActive={isDaemonActive}
+                onRemoveFile={handleRemoveFile}
+                printedHistory={printedHistory}
+                customConfigs={customConfigs}
+                onSaveCustomConfigs={setCustomConfigs}
+                simulateError={simulateError}
+                onToggleSimulateError={() => setSimulateError(!simulateError)}
+                onAddHistory={handleAddHistory}
+                onClearHistory={() => setPrintedHistory([])}
+                onAddQueuedFile={(f) => setQueuedFiles(prev => [...prev, f])}
+                onPrintSingleFile={handlePrintSingleFile}
+              />
+            )}
+            {activeTab === 'idcard' && (
+              <IdCardTab onAddHistory={handleAddHistory} onLogMessage={addLogMessage} />
+            )}
+            {activeTab === 'passport' && (
+              <PassportTab onAddHistory={handleAddHistory} onLogMessage={addLogMessage} />
+            )}
+            {activeTab === 'config' && (
+              <SetupTab
+                config={config}
+                status={setupStatus}
+                onSaveConfig={(updated) => {
+                  setConfig(updated);
+                  addLogMessage('config.json binding changes recorded in cache.', 'success');
+                }}
+                onRunDiagnostics={handleRunDiagnostics}
+                isDiagnosing={isDiagnosing}
+                onUpdatePrinterOnline={(online) => {
+                  setSetupStatus(prev => ({ ...prev, printerOnline: online }));
+                  addLogMessage(`[PING TEST] Printer network link state updated to ${online ? 'ONLINE' : 'OFFLINE'}.`, 'success');
+                }}
+              />
+            )}
+            {activeTab === 'license' && (
+              <LicenseTab
+                license={license}
+                onUpdateLicense={(updated) => setLicense(updated)}
+                onLogMessage={addLogMessage}
+              />
+            )}
+          </main>
 
-          {activeTab === 'idcard' && (
-            <IdCardTab 
-              onAddHistory={handleAddHistory}
-              onLogMessage={addLogMessage}
-            />
-          )}
-
-          {activeTab === 'passport' && (
-            <PassportTab 
-              onAddHistory={handleAddHistory}
-              onLogMessage={addLogMessage}
-            />
-          )}
-
-          {activeTab === 'config' && (
-            <SetupTab 
-              config={config}
-              status={setupStatus}
-              onSaveConfig={(updated) => {
-                setConfig(updated);
-                addLogMessage('config.json binding changes recorded in cache.', 'success');
-              }}
-              onRunDiagnostics={handleRunDiagnostics}
-              isDiagnosing={isDiagnosing}
-              onUpdatePrinterOnline={(online) => {
-                setSetupStatus(prev => ({ ...prev, printerOnline: online }));
-                addLogMessage(`[PING TEST] Printer network link state successfully updated to ${online ? 'ONLINE (ACTIVE)' : 'OFFLINE'}.`, 'success');
-              }}
-            />
-          )}
-
-          {activeTab === 'license' && (
-            <LicenseTab 
-              license={license}
-              onUpdateLicense={(updated) => setLicense(updated)}
-              onLogMessage={addLogMessage}
-            />
-          )}
-        </main>
-
-        {/* Retro Command logs Panel */}
-        <section className="pt-4">
-          <TerminalPanel 
-            logs={logs}
-            onClear={handleClearLogs}
-            onExecuteCommand={handleExecuteCommand}
-          />
-        </section>
+          <section className="flex-shrink-0 border-t border-slate-200 bg-white">
+            <TerminalPanel logs={logs} onClear={handleClearLogs} onExecuteCommand={handleExecuteCommand} />
+          </section>
+        </div>
       </div>
 
-      {/* Footer credits bar */}
-      <footer className="aipa-footer py-5 border-t border-slate-200 text-center text-[11px] text-slate-400 font-medium select-none bg-white">
-        <span>© 2026 AI Print Assistant Project • Engineered with absolute scope discipline and robust TypeScript bindings</span>
+      <footer className="bg-white border-t border-slate-200 py-3 text-center text-[10px] text-slate-400 font-medium select-none flex-shrink-0">
+        © 2026 AI Print Assistant Project • Engineered with absolute scope discipline and robust TypeScript bindings
       </footer>
 
       {/* Custom Modal Confirmation for Successful Print Job */}
