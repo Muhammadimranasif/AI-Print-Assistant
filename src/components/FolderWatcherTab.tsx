@@ -1975,7 +1975,7 @@ export default function FolderWatcherTab({
                   Drag & Drop files into <span className="text-indigo-600 font-mono text-[11px]">{activeFolder}</span>
                 </h3>
                 <p className="text-[10px] text-slate-400 mt-1 max-w-sm">
-                  Supports docx, pdf, png, jpeg. Converts Word files headless-style via LibreOffice and counts pages.
+                  Supports PDF, DOCX, PPTX, XLSX, JPG, PNG and more. Word/PowerPoint/Excel files convert via LibreOffice.
                 </p>
                 <button
                   id="select-files-btn"

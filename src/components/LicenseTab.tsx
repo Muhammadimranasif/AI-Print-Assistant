@@ -104,7 +104,7 @@ export default function LicenseTab({ license, onUpdateLicense, onLogMessage }: L
         licenseKey: generatedKey,
         status: statusVal,
         trialDays: genMode.includes('trial') ? 7 : 0,
-        licenseStartDate: '2026-05-29',
+        licenseStartDate: new Date().toISOString().split('T')[0],
         licenseExpiryDate: genExpiry,
         graceDays: 3,
         blockAfterGrace: true,

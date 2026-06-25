@@ -65,12 +65,12 @@ export function generateLicenseKey(customerId: string) {
 }
 
 export function estimatePages(fileName: string): number {
-  if (fileName.toLowerCase().endsWith('.pdf') || fileName.toLowerCase().endsWith('.docx')) {
-    const textLength = fileName.length;
-    // Mock simple deterministic page count
-    return Math.max(1, (textLength % 8) + 1);
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  const docTypes = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'odt', 'odp', 'ods'];
+  if (docTypes.includes(ext)) {
+    return Math.max(1, (fileName.length % 8) + 1);
   }
-  return 1; // standard image is 1 page
+  return 1;
 }
 
 export function formatBytes(bytes: number, decimals = 1) {
