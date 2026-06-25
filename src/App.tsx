@@ -791,16 +791,16 @@ export default function App() {
           const idColor = cfg.mode === 'bw' ? 'monochrome' : 'color';
           printSettings = `${idDuplex},${idColor}`;
         } else {
-          // NORMAL_PAGES — apply B&W/color, duplex, and validated page range
+          // NORMAL_PAGES — apply B&W/color, duplex, and page range
           const npDuplex = cfg.duplex ? 'duplexlong' : 'simplex';
           const npColor = cfg.color_mode === 'bw' ? 'monochrome' : 'color';
           const npCopies = cfg.copies > 1 ? `,${cfg.copies}x` : '';
-          const validPages = validatePageRange(cfg.selected_pages || 'all', file.pages);
-          const npPages = validPages ? `,${validPages}` : '';
+          // Pass page range directly to SumatraPDF — do NOT clamp to file.pages estimate
+          // (file.pages is often wrong for custom uploads; SumatraPDF skips out-of-range pages gracefully)
+          const rawPages = (cfg.selected_pages || 'all').trim().toLowerCase();
+          const npPages = rawPages && rawPages !== 'all' ? `,${rawPages}` : '';
           printSettings = `${npDuplex},${npColor}${npPages}${npCopies}`;
-          if (validPages !== (cfg.selected_pages || '').replace(/\s/g, '').replace(/all/g, '')) {
-            addLogMessage(`[PAGE RANGE] Clamped page range to PDF size (${file.pages} pages). Printing: ${validPages || 'all'}`, 'warning');
-          }
+          addLogMessage(`[PAGE RANGE] Print settings: ${printSettings}`, 'info');
         }
       }
 
@@ -1070,16 +1070,14 @@ export default function App() {
         const idColor = cfg.mode === 'bw' ? 'monochrome' : 'color';
         printSettings = `${idDuplex},${idColor}`;
       } else {
-        // NORMAL_PAGES — apply B&W/color, duplex, and validated page range
+        // NORMAL_PAGES — apply B&W/color, duplex, and page range
         const npDuplex = cfg.duplex ? 'duplexlong' : 'simplex';
         const npColor = cfg.color_mode === 'bw' ? 'monochrome' : 'color';
         const npCopies = cfg.copies > 1 ? `,${cfg.copies}x` : '';
-        const validPages = validatePageRange(cfg.selected_pages || 'all', file.pages);
-        const npPages = validPages ? `,${validPages}` : '';
+        const rawPages = (cfg.selected_pages || 'all').trim().toLowerCase();
+        const npPages = rawPages && rawPages !== 'all' ? `,${rawPages}` : '';
         printSettings = `${npDuplex},${npColor}${npPages}${npCopies}`;
-        if (validPages !== (cfg.selected_pages || '').replace(/\s/g, '').replace(/all/g, '')) {
-          addLogMessage(`[PAGE RANGE] Clamped page range to PDF size (${file.pages} pages). Printing: ${validPages || 'all'}`, 'warning');
-        }
+        addLogMessage(`[PAGE RANGE] Print settings: ${printSettings}`, 'info');
       }
     }
 

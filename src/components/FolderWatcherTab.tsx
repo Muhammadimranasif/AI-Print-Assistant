@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { PrintFile, PricingConfig, PrintedHistoryOrder } from '../types';
+import { estimatePages } from '../utils';
 import { Folder, Upload, Play, Printer, CheckCircle, FileText, X, ChevronRight, RefreshCw, AlertCircle, Trash2, ShieldCheck, Ticket, Eye, FileDown, Settings2, AlertTriangle } from 'lucide-react';
 
 interface PrintPreviewCanvasProps {
@@ -654,25 +655,107 @@ function IdCardSheetPreview({ cardsPerSheet, cardWidthMm, cardHeightMm, cutGuide
   );
 }
 
+function PageMiniature({ pg, isSel, isBack, duplex, isBw, colorMode }: {
+  pg: number; isSel: boolean; isBack: boolean; duplex: boolean; isBw: boolean; colorMode: string;
+}) {
+  const [hovered, setHovered] = React.useState(false);
+  const lineColor = isBw ? (isSel ? '#e2e8f0' : '#f1f5f9') : (isSel ? '#a5f3fc' : '#f0fdfa');
+  const headColor = isBw ? (isSel ? '#94a3b8' : '#cbd5e1') : (isSel ? '#22d3ee' : '#99f6e4');
+  return (
+    <div className="relative" style={{ zIndex: hovered ? 50 : 1 }}>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={`relative flex flex-col rounded border cursor-pointer select-none overflow-hidden transition-all duration-150 ${
+          isSel
+            ? isBack
+              ? 'border-indigo-300 bg-indigo-50 shadow-sm'
+              : 'border-indigo-500 bg-indigo-50 shadow-md'
+            : 'border-slate-200 bg-slate-50'
+        }`}
+        style={{ width: 36, height: 48, minWidth: 36 }}
+      >
+        {/* mini page content lines */}
+        <div className="flex flex-col gap-0.5 p-1 flex-1 overflow-hidden">
+          <div className="rounded-sm h-1.5" style={{ background: headColor, width: '80%' }} />
+          {[70,100,85,100,60,90].map((w, i) => (
+            <div key={i} className="rounded-sm h-[3px]" style={{ background: lineColor, width: `${w}%` }} />
+          ))}
+          <div className="rounded-sm h-2 mt-0.5" style={{ background: lineColor, width: '90%' }} />
+        </div>
+        {/* page number badge */}
+        <div className={`absolute bottom-0 inset-x-0 flex items-center justify-center pb-0.5 ${
+          isSel ? 'bg-indigo-500/90' : 'bg-slate-200/80'
+        }`} style={{ height: 13 }}>
+          <span className={`font-bold leading-none text-[7px] ${isSel ? 'text-white' : 'text-slate-400'}`}>{pg}</span>
+          {isSel && duplex && (
+            <span className={`ml-0.5 font-bold leading-none text-[6px] ${isBack ? 'text-indigo-200' : 'text-indigo-100'}`}>{isBack ? 'B' : 'F'}</span>
+          )}
+        </div>
+      </div>
+      {/* Hover zoom popup */}
+      {hovered && (
+        <div className={`absolute left-1/2 bottom-full mb-2 rounded-xl border-2 shadow-2xl overflow-hidden flex flex-col pointer-events-none ${
+          isSel ? 'border-indigo-400 bg-white' : 'border-slate-300 bg-slate-50'
+        }`}
+          style={{ width: 90, height: 120, transform: 'translateX(-50%)', zIndex: 100 }}
+        >
+          <div className="flex flex-col gap-1 p-2 flex-1">
+            <div className="rounded h-3" style={{ background: headColor, width: '75%' }} />
+            {[75,100,80,100,65,90,100,70].map((w, i) => (
+              <div key={i} className="rounded h-1.5" style={{ background: lineColor, width: `${w}%` }} />
+            ))}
+            <div className="rounded h-4 mt-1" style={{ background: lineColor, width: '90%' }} />
+          </div>
+          <div className={`flex items-center justify-center gap-1 py-1 ${isSel ? 'bg-indigo-500' : 'bg-slate-200'}`}>
+            <span className={`font-bold text-[10px] ${isSel ? 'text-white' : 'text-slate-500'}`}>Page {pg}</span>
+            {isSel && duplex && <span className={`text-[9px] font-semibold ${isBack ? 'text-indigo-200' : 'text-indigo-100'}`}>({isBack ? 'Back' : 'Front'})</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NormalPagesPreview({ selectedPages, duplex, colorMode, copies, fitToPage }: {
   selectedPages: string; duplex: boolean; colorMode: string; copies: number; fitToPage: string;
 }) {
-  const TOTAL = 12;
+  const [fitHovered, setFitHovered] = React.useState(false);
+  const [sampleHovered, setSampleHovered] = React.useState(false);
+
+  // Compute the max page mentioned in the range, to know how many slots to show
+  const computeTotal = (val: string): number => {
+    if (!val || val.trim().toLowerCase() === 'all') return 12;
+    let max = 0;
+    val.split(',').forEach(part => {
+      const m = part.trim().match(/^(\d+)-(\d+)$/);
+      if (m) { max = Math.max(max, parseInt(m[2])); }
+      else { const n = parseInt(part.trim()); if (!isNaN(n)) max = Math.max(max, n); }
+    });
+    return Math.max(max, 12);
+  };
+
+  const TOTAL = computeTotal(selectedPages);
+
   const parsePages = (val: string): Set<number> => {
     if (!val || val.trim().toLowerCase() === 'all') return new Set(Array.from({ length: TOTAL }, (_, i) => i + 1));
     const s = new Set<number>();
     val.split(',').forEach(part => {
       const m = part.trim().match(/^(\d+)-(\d+)$/);
-      if (m) { for (let i = parseInt(m[1]); i <= parseInt(m[2]); i++) if (i >= 1 && i <= TOTAL) s.add(i); }
-      else { const n = parseInt(part.trim()); if (!isNaN(n) && n >= 1 && n <= TOTAL) s.add(n); }
+      if (m) { for (let i = parseInt(m[1]); i <= parseInt(m[2]); i++) if (i >= 1) s.add(i); }
+      else { const n = parseInt(part.trim()); if (!isNaN(n) && n >= 1) s.add(n); }
     });
     return s;
   };
+
   const selected = parsePages(selectedPages);
   const isBw = colorMode === 'bw' || !colorMode;
   const sortedSelected = Array.from(selected).sort((a, b) => a - b);
   const totalSelected = selected.size;
   const physicalSheets = duplex ? Math.ceil(totalSelected / 2) : totalSelected;
+  const lineColor = isBw ? '#e2e8f0' : '#a5f3fc';
+  const headColor = isBw ? '#94a3b8' : '#22d3ee';
+
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
@@ -684,22 +767,19 @@ function NormalPagesPreview({ selectedPages, duplex, colorMode, copies, fitToPag
         </div>
       </div>
       <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
-        <div className="grid grid-cols-6 gap-1.5">
-          {Array.from({ length: TOTAL }, (_, i) => {
-            const pg = i + 1;
-            const isSel = selected.has(pg);
-            const idx = sortedSelected.indexOf(pg);
-            const isBack = duplex && isSel && idx % 2 === 1;
-            return (
-              <div key={pg} className={`relative flex flex-col items-center justify-center rounded border aspect-[3/4] text-[8px] font-bold transition-all ${
-                isSel ? isBack ? 'bg-indigo-100 border-indigo-300 text-indigo-600' : 'bg-indigo-500 border-indigo-600 text-white shadow-sm'
-                      : 'bg-slate-50 border-slate-200 text-slate-300'
-              }`}>
-                <span>{pg}</span>
-                {isSel && duplex && <span className="absolute bottom-0.5 text-[6px] opacity-60">{isBack ? 'B' : 'F'}</span>}
-              </div>
-            );
-          })}
+        {/* Page grid — horizontal scroll when > 12 pages */}
+        <div className="overflow-x-auto pb-1">
+          <div className="flex gap-1.5" style={{ width: 'max-content' }}>
+            {Array.from({ length: TOTAL }, (_, i) => {
+              const pg = i + 1;
+              const isSel = selected.has(pg);
+              const idx = sortedSelected.indexOf(pg);
+              const isBack = duplex && isSel && idx % 2 === 1;
+              return (
+                <PageMiniature key={pg} pg={pg} isSel={isSel} isBack={isBack} duplex={duplex} isBw={isBw} colorMode={colorMode} />
+              );
+            })}
+          </div>
         </div>
         <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono">
           <span className="text-indigo-600 font-bold">{totalSelected}/{TOTAL} pages</span>
@@ -718,20 +798,41 @@ function NormalPagesPreview({ selectedPages, duplex, colorMode, copies, fitToPag
           </div>
         )}
       </div>
+      {/* Page sample + Fit diagram — hover to zoom */}
       <div className="flex gap-2">
-        <div className="flex-1 space-y-1">
+        <div
+          className="flex-1 space-y-1 relative"
+          onMouseEnter={() => setSampleHovered(true)}
+          onMouseLeave={() => setSampleHovered(false)}
+        >
           <p className="text-[9px] text-slate-400 text-center font-mono uppercase">Page Sample</p>
-          <div className={`rounded-xl border p-2.5 space-y-1.5 ${isBw ? 'border-slate-200 bg-white' : 'border-cyan-200 bg-cyan-50/30'}`}>
-            <div className={`h-1.5 rounded-full w-3/4 ${isBw ? 'bg-slate-300' : 'bg-cyan-400'}`} />
+          <div className={`rounded-xl border p-2.5 space-y-1.5 cursor-pointer transition-all duration-200 ${isBw ? 'border-slate-200 bg-white hover:border-slate-400 hover:shadow-md' : 'border-cyan-200 bg-cyan-50/30 hover:border-cyan-400 hover:shadow-md'}`}>
+            <div className="h-1.5 rounded-full w-3/4" style={{ background: headColor }} />
             {[1, 5/6, 1, 4/5, 1].map((w, i) => (
-              <div key={i} className={`h-1 rounded-full ${isBw ? 'bg-slate-100' : 'bg-cyan-100'}`} style={{ width: `${w * 100}%` }} />
+              <div key={i} className="h-1 rounded-full" style={{ background: lineColor, width: `${w * 100}%` }} />
             ))}
-            <div className={`h-4 rounded mt-0.5 ${isBw ? 'bg-slate-50' : 'bg-cyan-50'} border ${isBw ? 'border-slate-100' : 'border-cyan-200'}`} />
+            <div className="h-4 rounded mt-0.5" style={{ background: lineColor }} />
           </div>
+          {sampleHovered && (
+            <div className={`absolute left-0 bottom-full mb-2 z-50 rounded-xl border-2 shadow-2xl p-3 pointer-events-none ${isBw ? 'border-slate-300 bg-white' : 'border-cyan-300 bg-cyan-50/80'}`} style={{ width: 120 }}>
+              <div className="space-y-1.5">
+                <div className="h-2.5 rounded-full w-3/4" style={{ background: headColor }} />
+                {[100,85,100,70,100,80,60,100,75,90].map((w, i) => (
+                  <div key={i} className="h-1.5 rounded-full" style={{ background: lineColor, width: `${w}%` }} />
+                ))}
+                <div className="h-7 rounded mt-1" style={{ background: lineColor }} />
+              </div>
+              <p className="text-[8px] text-center mt-1.5 text-slate-400 font-mono">Content preview</p>
+            </div>
+          )}
         </div>
-        <div className="flex-1 space-y-1">
+        <div
+          className="flex-1 space-y-1 relative"
+          onMouseEnter={() => setFitHovered(true)}
+          onMouseLeave={() => setFitHovered(false)}
+        >
           <p className="text-[9px] text-slate-400 text-center font-mono uppercase">Fit: {fitToPage}</p>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center" style={{ minHeight: 72 }}>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer hover:border-slate-400 hover:shadow-md transition-all duration-200" style={{ minHeight: 72 }}>
             {fitToPage === 'shrink' && (
               <div className="relative w-full h-14 flex items-center justify-center">
                 <div className="absolute inset-1 border border-dashed border-slate-300 rounded-lg" />
@@ -748,6 +849,29 @@ function NormalPagesPreview({ selectedPages, duplex, colorMode, copies, fitToPag
               </div>
             )}
           </div>
+          {fitHovered && (
+            <div className="absolute right-0 bottom-full mb-2 z-50 rounded-xl border-2 border-slate-300 bg-white shadow-2xl p-3 pointer-events-none" style={{ width: 130 }}>
+              <p className="text-[9px] font-bold text-slate-600 text-center mb-2">Fit Mode: {fitToPage}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center" style={{ height: 90 }}>
+                {fitToPage === 'shrink' && (
+                  <div className="relative w-full h-20 flex items-center justify-center">
+                    <div className="absolute inset-2 border border-dashed border-slate-300 rounded-lg" />
+                    <div className={`w-14 h-18 rounded border-2 shadow-sm ${isBw ? 'border-slate-400 bg-slate-100' : 'border-cyan-400 bg-cyan-50'}`} style={{ height: 56 }} />
+                  </div>
+                )}
+                {fitToPage === 'fill' && (
+                  <div className={`w-full rounded-lg border-2 ${isBw ? 'border-slate-400 bg-slate-200' : 'border-cyan-400 bg-cyan-100'}`} style={{ height: 70 }} />
+                )}
+                {fitToPage === 'crop' && (
+                  <div className="relative w-full overflow-hidden rounded-lg" style={{ height: 70 }}>
+                    <div className={`absolute -inset-3 rounded border-2 ${isBw ? 'border-slate-400 bg-slate-200' : 'border-cyan-400 bg-cyan-100'}`} />
+                    <div className="absolute inset-0 border-2 border-dashed border-rose-400 rounded" />
+                  </div>
+                )}
+              </div>
+              <p className="text-[8px] text-center mt-1.5 text-slate-400">{fitToPage === 'shrink' ? 'Content shrinks to fit with margins' : fitToPage === 'fill' ? 'Content stretches to fill page' : 'Content cropped at dashed line'}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -826,6 +950,123 @@ interface FolderWatcherTabProps {
   onClearHistory: () => void;
   onAddQueuedFile: (file: PrintFile) => void;
   onPrintSingleFile: (id: string) => void;
+}
+
+function NormalPagesSection({ normalConfig, setNormalConfig, handleCustomOrderUpload }: {
+  normalConfig: any; setNormalConfig: (fn: any) => void;
+  handleCustomOrderUpload: (e: React.ChangeEvent<HTMLInputElement>, sub: any, cfg: any) => void;
+}) {
+  const [cfgOpen, setCfgOpen] = React.useState(false);
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Config column — slide open on hover */}
+        <div
+          className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+          onMouseEnter={() => setCfgOpen(true)}
+          onMouseLeave={() => setCfgOpen(false)}
+        >
+          {/* Always-visible header strip */}
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100 cursor-default select-none">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Settings2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              <span className="text-[11px] font-bold text-slate-700 shrink-0">Configuration</span>
+              <span className="text-[9px] text-slate-400 font-mono truncate">
+                · {normalConfig.selected_pages || 'all'} pg · {normalConfig.color_mode === 'color' ? '🌈 Color' : '⬛ B&W'} · {normalConfig.duplex ? 'Duplex' : 'Simplex'}
+              </span>
+            </div>
+            <ChevronRight className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${cfgOpen ? 'rotate-90' : ''}`} />
+          </div>
+          {/* Collapsible body */}
+          <div
+            className="overflow-hidden transition-all duration-300 ease-in-out"
+            style={{ maxHeight: cfgOpen ? 600 : 0 }}
+          >
+            <div className="p-4 space-y-3 text-xs">
+              <div className="space-y-1.5">
+                <label className="block text-slate-500 font-semibold text-[11px]">Page Range</label>
+                <input type="text" value={normalConfig.selected_pages}
+                  onChange={(e) => setNormalConfig((prev: any) => ({ ...prev, selected_pages: e.target.value }))}
+                  placeholder='e.g. "all" or "1-5, 8, 10-12"'
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-mono focus:ring-1 focus:ring-indigo-400 focus:outline-none" />
+                <span className="text-[10px] text-slate-400">Use "all" or ranges like "1-5, 8" — e.g. 1,7 = pages 1 and 7 only</span>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-slate-500 font-semibold text-[11px]">Color Mode</label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setNormalConfig((prev: any) => ({ ...prev, color_mode: 'bw' }))}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${normalConfig.color_mode === 'bw' || !normalConfig.color_mode ? 'bg-slate-800 text-white border-slate-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+                    ⬛ B&W
+                  </button>
+                  <button type="button" onClick={() => setNormalConfig((prev: any) => ({ ...prev, color_mode: 'color' }))}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${normalConfig.color_mode === 'color' ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-cyan-50'}`}>
+                    🌈 Color
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-slate-500 font-semibold text-[11px]">Fit to Page</label>
+                <select value={normalConfig.fit_to_page} onChange={(e) => setNormalConfig((prev: any) => ({ ...prev, fit_to_page: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:ring-1 focus:ring-indigo-400 focus:outline-none">
+                  <option value="shrink">Shrink — preserve margins</option>
+                  <option value="fill">Fill — stretch to edges</option>
+                  <option value="crop">Crop — cut excess bleed</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-slate-500 font-semibold text-[11px]">Copies</label>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setNormalConfig((prev: any) => ({ ...prev, copies: Math.max(1, (prev.copies || 1) - 1) }))}
+                    className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center">−</button>
+                  <span className="flex-1 text-center text-sm font-bold text-slate-700">{normalConfig.copies || 1}</span>
+                  <button type="button" onClick={() => setNormalConfig((prev: any) => ({ ...prev, copies: (prev.copies || 1) + 1 }))}
+                    className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center">+</button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={normalConfig.duplex} onChange={(e) => setNormalConfig((prev: any) => ({ ...prev, duplex: e.target.checked }))}
+                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded" id="chk-norm-dup" />
+                  <span className="text-slate-600 font-medium text-[11px]">Duplex (two-sided)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={normalConfig.collate} onChange={(e) => setNormalConfig((prev: any) => ({ ...prev, collate: e.target.checked }))}
+                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded" id="chk-norm-collate" />
+                  <span className="text-slate-600 font-medium text-[11px]">Collate sets</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Live preview column */}
+        <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-sm">
+          <NormalPagesPreview
+            selectedPages={normalConfig.selected_pages || 'all'}
+            duplex={normalConfig.duplex || false}
+            colorMode={normalConfig.color_mode || 'bw'}
+            copies={normalConfig.copies || 1}
+            fitToPage={normalConfig.fit_to_page || 'shrink'}
+          />
+        </div>
+      </div>
+      {/* Upload zone */}
+      <label className="relative w-full border-2 border-dashed border-indigo-200 rounded-xl py-5 px-4 flex flex-col items-center justify-center gap-1.5 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer bg-white overflow-hidden group">
+        <input type="file" accept=".pdf,.doc,.docx,.pptx,.ppt,.xlsx,.xls" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          onChange={(e) => handleCustomOrderUpload(e, 'NORMAL_PAGES', { job_type: 'normal_pages', selected_pages: normalConfig.selected_pages, duplex: normalConfig.duplex, color_mode: normalConfig.color_mode || 'bw', fit_to_page: normalConfig.fit_to_page, collate: normalConfig.collate, copies: normalConfig.copies })} />
+        <Upload className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 pointer-events-none transition-colors" />
+        <span className="text-[12px] font-bold text-indigo-600 pointer-events-none">Upload PDF / DOCX / PPTX to Print</span>
+        <span className="text-[10px] text-slate-400 pointer-events-none">Settings applied automatically · pages: {normalConfig.selected_pages || 'all'} · hover the config card to change</span>
+      </label>
+      {/* order.json */}
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+          <span className="text-[10px] font-mono font-bold text-slate-600">📄 NORMAL_PAGES / order.json</span>
+          <span className="text-[9px] text-slate-400 font-mono">auto-written on save</span>
+        </div>
+        <pre className="text-[9.5px] font-mono text-slate-600 px-3 py-2 leading-5 bg-white">{JSON.stringify({ job_type: "normal_pages", selected_pages: normalConfig.selected_pages, duplex: normalConfig.duplex, color_mode: normalConfig.color_mode || 'bw', fit_to_page: normalConfig.fit_to_page, collate: normalConfig.collate, copies: normalConfig.copies }, null, 2)}</pre>
+      </div>
+    </div>
+  );
 }
 
 export default function FolderWatcherTab({
@@ -964,7 +1205,7 @@ export default function FolderWatcherTab({
       name: f.name,
       size: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
       type: ext,
-      pages: isImage ? 1 : 1,
+      pages: isImage ? 1 : estimatePages(f.name),
       status: 'queued',
       progress: 0,
       progressMessage: 'Ready — custom order',
@@ -1720,95 +1961,12 @@ export default function FolderWatcherTab({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {/* Two-column: config left, preview right */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Config column */}
-                    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 text-xs shadow-sm">
-                      <p className="text-[11px] font-bold text-slate-700 border-b border-slate-100 pb-2">Configuration</p>
-                      <div className="space-y-1.5">
-                        <label className="block text-slate-500 font-semibold text-[11px]">Page Range</label>
-                        <input type="text" value={normalConfig.selected_pages}
-                          onChange={(e) => setNormalConfig(prev => ({ ...prev, selected_pages: e.target.value }))}
-                          placeholder='e.g. "all" or "1-5, 8, 10-12"'
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-mono focus:ring-1 focus:ring-indigo-400 focus:outline-none" />
-                        <span className="text-[10px] text-slate-400">Use "all" or ranges like "1-5, 8" — pages beyond total are skipped</span>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-slate-500 font-semibold text-[11px]">Color Mode</label>
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, color_mode: 'bw' }))}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${normalConfig.color_mode === 'bw' || !normalConfig.color_mode ? 'bg-slate-800 text-white border-slate-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
-                            ⬛ B&W
-                          </button>
-                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, color_mode: 'color' }))}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${normalConfig.color_mode === 'color' ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-cyan-50'}`}>
-                            🌈 Color
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-slate-500 font-semibold text-[11px]">Fit to Page</label>
-                        <select value={normalConfig.fit_to_page} onChange={(e) => setNormalConfig(prev => ({ ...prev, fit_to_page: e.target.value }))}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:ring-1 focus:ring-indigo-400 focus:outline-none">
-                          <option value="shrink">Shrink — preserve margins</option>
-                          <option value="fill">Fill — stretch to edges</option>
-                          <option value="crop">Crop — cut excess bleed</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-slate-500 font-semibold text-[11px]">Copies</label>
-                        <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, copies: Math.max(1, (prev.copies || 1) - 1) }))}
-                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center">−</button>
-                          <span className="flex-1 text-center text-sm font-bold text-slate-700">{normalConfig.copies || 1}</span>
-                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, copies: (prev.copies || 1) + 1 }))}
-                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center">+</button>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-3 pt-1">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={normalConfig.duplex} onChange={(e) => setNormalConfig(prev => ({ ...prev, duplex: e.target.checked }))}
-                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded" id="chk-norm-dup" />
-                          <span className="text-slate-600 font-medium text-[11px]">Duplex (two-sided)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={normalConfig.collate} onChange={(e) => setNormalConfig(prev => ({ ...prev, collate: e.target.checked }))}
-                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded" id="chk-norm-collate" />
-                          <span className="text-slate-600 font-medium text-[11px]">Collate sets</span>
-                        </label>
-                      </div>
-                    </div>
-                    {/* Live preview column */}
-                    <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-sm">
-                      <NormalPagesPreview
-                        selectedPages={normalConfig.selected_pages || 'all'}
-                        duplex={normalConfig.duplex || false}
-                        colorMode={normalConfig.color_mode || 'bw'}
-                        copies={normalConfig.copies || 1}
-                        fitToPage={normalConfig.fit_to_page || 'shrink'}
-                      />
-                    </div>
-                  </div>
-                  {/* Upload zone */}
-                  <label className="relative w-full border-2 border-dashed border-indigo-200 rounded-xl py-5 px-4 flex flex-col items-center justify-center gap-1.5 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer bg-white overflow-hidden group">
-                    <input type="file" accept=".pdf,.doc,.docx" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={(e) => handleCustomOrderUpload(e, 'NORMAL_PAGES', { job_type: 'normal_pages', selected_pages: normalConfig.selected_pages, duplex: normalConfig.duplex, color_mode: normalConfig.color_mode || 'bw', fit_to_page: normalConfig.fit_to_page, collate: normalConfig.collate, copies: normalConfig.copies })} />
-                    <Upload className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 pointer-events-none transition-colors" />
-                    <span className="text-[12px] font-bold text-indigo-600 pointer-events-none">Upload PDF / DOCX to Print</span>
-                    <span className="text-[10px] text-slate-400 pointer-events-none">Settings above applied automatically · pages: {normalConfig.selected_pages || 'all'}</span>
-                  </label>
-                  {/* order.json */}
-                  <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-                      <span className="text-[10px] font-mono font-bold text-slate-600">📄 NORMAL_PAGES / order.json</span>
-                      <span className="text-[9px] text-slate-400 font-mono">auto-written on save</span>
-                    </div>
-                    <pre className="text-[9.5px] font-mono text-slate-600 px-3 py-2 leading-5 bg-white">{JSON.stringify({ job_type: "normal_pages", selected_pages: normalConfig.selected_pages, duplex: normalConfig.duplex, color_mode: normalConfig.color_mode || 'bw', fit_to_page: normalConfig.fit_to_page, collate: normalConfig.collate, copies: normalConfig.copies }, null, 2)}</pre>
-                  </div>
-                </div>
+                <NormalPagesSection
+                  normalConfig={normalConfig}
+                  setNormalConfig={setNormalConfig}
+                  handleCustomOrderUpload={handleCustomOrderUpload}
+                />
               )}
-
               {/* Actions panels for custom JSON configuration state */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 pt-4">
                 <div className="font-mono text-[9px] text-slate-400 text-left space-y-0.5">
