@@ -104,12 +104,16 @@ function setupIPC() {
 function startUpdateInterval(updater) {
   // Check immediately on startup (after 5s delay so UI can load)
   setTimeout(async () => {
-    try { await updater.checkForUpdates(); } catch (_) {}
+    try { await updater.checkForUpdates(); } catch (e) {
+      sendUpdateStatus('error', { message: e.message });
+    }
   }, 5000);
 
   // Then check every 60 seconds
   updateCheckInterval = setInterval(async () => {
-    try { await updater.checkForUpdates(); } catch (_) {}
+    try { await updater.checkForUpdates(); } catch (e) {
+      sendUpdateStatus('error', { message: e.message });
+    }
   }, 60 * 1000);
 }
 
