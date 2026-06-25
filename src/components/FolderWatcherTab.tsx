@@ -641,8 +641,13 @@ export default function FolderWatcherTab({
     border_color: "black",
     watch_delay_seconds: 3
   });
-  const [idCardConfig, setIdCardConfig] = useState(customConfigs.idCard);
-  const [normalConfig, setNormalConfig] = useState(customConfigs.normalPages);
+  const [idCardConfig, setIdCardConfig] = useState(customConfigs.idCard || {
+    job_type: "id_cards", mode: "bw", duplex: true,
+    id_card_layout: { enabled: true, pdf_file: "not_used.pdf", front_file: "front.jpg", back_file: "back.jpg", cards_per_sheet: 8, cut_guides: true, auto_crop: false, fit_mode: "fill", enhance: true, contrast: 1.35, sharpness: 1.4, brightness: 0.92, card_width_mm: 85.6, card_height_mm: 53.98, approved_to_print: false }
+  });
+  const [normalConfig, setNormalConfig] = useState(customConfigs.normalPages || {
+    job_type: "normal_pages", selected_pages: "all", duplex: false, color_mode: "bw", fit_to_page: "shrink", collate: true, copies: 1
+  });
 
   // Keep states synced if prop updates
   React.useEffect(() => {
@@ -652,11 +657,11 @@ export default function FolderWatcherTab({
   }, [customConfigs.passportPhoto]);
 
   React.useEffect(() => {
-    setIdCardConfig(customConfigs.idCard);
+    if (customConfigs.idCard) setIdCardConfig(customConfigs.idCard);
   }, [customConfigs.idCard]);
 
   React.useEffect(() => {
-    setNormalConfig(customConfigs.normalPages);
+    if (customConfigs.normalPages) setNormalConfig(customConfigs.normalPages);
   }, [customConfigs.normalPages]);
 
   const folders = [

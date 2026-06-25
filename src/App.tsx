@@ -84,17 +84,65 @@ export default function App() {
   const [isDiagnosing, setIsDiagnosing] = useState<boolean>(false);
   const [isDaemonActive, setIsDaemonActive] = useState<boolean>(false);
   const [simulateError, setSimulateError] = useState<boolean>(false);
+  const defaultCustomConfigs = {
+    passportPhoto: {
+      photo_count: "max",
+      output_jpg: true,
+      output_pdf: true,
+      gap_mm: 2,
+      person_background: "keep",
+      sheet_background: "white",
+      border_enabled: true,
+      border_width_px: 2,
+      border_color: "black",
+      watch_delay_seconds: 3
+    },
+    idCard: {
+      job_type: "id_cards",
+      mode: "bw",
+      duplex: true,
+      id_card_layout: {
+        enabled: true,
+        pdf_file: "not_used.pdf",
+        front_file: "front.jpg",
+        back_file: "back.jpg",
+        cards_per_sheet: 8,
+        cut_guides: true,
+        auto_crop: false,
+        fit_mode: "fill",
+        enhance: true,
+        contrast: 1.35,
+        sharpness: 1.4,
+        brightness: 0.92,
+        card_width_mm: 85.6,
+        card_height_mm: 53.98,
+        approved_to_print: false
+      }
+    },
+    normalPages: {
+      job_type: "normal_pages",
+      selected_pages: "all",
+      duplex: false,
+      color_mode: "bw",
+      fit_to_page: "shrink",
+      collate: true,
+      copies: 1
+    }
+  };
+
   const [customConfigs, setCustomConfigs] = useState(() => {
     const saved = localStorage.getItem('aipa_custom_configs');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure passportPhoto exists in restored state
-        if (parsed.passportPhoto) {
-          return parsed;
-        }
+        // Merge with defaults so any missing keys (from older cached data) are filled in
+        return {
+          passportPhoto: { ...defaultCustomConfigs.passportPhoto, ...(parsed.passportPhoto || {}) },
+          idCard: { ...defaultCustomConfigs.idCard, ...(parsed.idCard || {}) },
+          normalPages: { ...defaultCustomConfigs.normalPages, ...(parsed.normalPages || {}) },
+        };
       } catch (e) {
-        // Fallback
+        // Fallback to defaults
       }
     }
     return {
