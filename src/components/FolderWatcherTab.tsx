@@ -520,6 +520,189 @@ function PassportBgCanvas({ imageUrl, bgColor }: { imageUrl: string; bgColor: st
   );
 }
 
+function IdCardSheetPreview({ cardsPerSheet, cardWidthMm, cardHeightMm, cutGuides, enhance, colorMode, duplex }: {
+  cardsPerSheet: number; cardWidthMm: number; cardHeightMm: number;
+  cutGuides: boolean; enhance: boolean; colorMode: string; duplex: boolean;
+}) {
+  const getGrid = (n: number): [number, number] => {
+    if (n <= 2) return [1, 2]; if (n <= 4) return [2, 2];
+    if (n <= 6) return [2, 3]; if (n <= 8) return [2, 4];
+    if (n <= 10) return [2, 5]; return [3, 4];
+  };
+  const [cols, rows] = getGrid(cardsPerSheet);
+  const svgW = 210, svgH = 297, margin = 8, gap = 3;
+  const cellW = (svgW - margin * 2 - (cols - 1) * gap) / cols;
+  const cellH = (svgH - margin * 2 - (rows - 1) * gap) / rows;
+  const cards: { x: number; y: number; w: number; h: number }[] = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    if (cards.length >= cardsPerSheet) break;
+    cards.push({ x: margin + c * (cellW + gap), y: margin + r * (cellH + gap), w: cellW, h: cellH });
+  }
+  const isBw = colorMode === 'bw';
+  const cardFill = isBw ? '#f8f8f8' : '#f0f4ff';
+  const cardStroke = isBw ? '#cbd5e1' : '#818cf8';
+  const lineClr = isBw ? '#e2e8f0' : '#c7d2fe';
+  const photoFill = isBw ? '#e2e8f0' : '#c7d2fe';
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-600 tracking-tight">Sheet Layout Preview</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isBw ? 'bg-slate-100 text-slate-600' : 'bg-cyan-100 text-cyan-700'}`}>{isBw ? 'B&W' : '🌈 Color'}</span>
+          {duplex && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">⇄ Duplex</span>}
+          {cutGuides && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600">✂ Cut Marks</span>}
+        </div>
+      </div>
+      <div className={`flex gap-3 items-start ${duplex ? '' : 'justify-center'}`}>
+        <div className={`space-y-1 ${duplex ? 'flex-1' : 'w-40'}`}>
+          <p className="text-[9px] text-slate-400 text-center font-mono uppercase">Front — {cardsPerSheet} cards</p>
+          <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full rounded-xl border border-slate-200 shadow-sm bg-white" style={{ maxHeight: 220 }}>
+            {cards.map((card, i) => (
+              <g key={i}>
+                <rect x={card.x} y={card.y} width={card.w} height={card.h} rx={2} fill={cardFill} stroke={cardStroke} strokeWidth={0.8} />
+                <rect x={card.x + 2} y={card.y + 2} width={card.w * 0.42} height={card.h * 0.55} rx={1} fill={photoFill} />
+                <line x1={card.x + card.w * 0.52} y1={card.y + 4} x2={card.x + card.w - 2} y2={card.y + 4} stroke={lineClr} strokeWidth={1.2} />
+                <line x1={card.x + card.w * 0.52} y1={card.y + 7} x2={card.x + card.w - 2} y2={card.y + 7} stroke={lineClr} strokeWidth={0.8} />
+                <line x1={card.x + card.w * 0.52} y1={card.y + 10} x2={card.x + card.w - 2} y2={card.y + 10} stroke={lineClr} strokeWidth={0.6} />
+                <line x1={card.x + 2} y1={card.y + card.h - 3} x2={card.x + card.w - 2} y2={card.y + card.h - 3} stroke={lineClr} strokeWidth={0.5} />
+                {enhance && <circle cx={card.x + card.w - 3} cy={card.y + 3} r={2} fill="#6366f1" />}
+                {cutGuides && <>
+                  <line x1={card.x - 2} y1={card.y} x2={card.x - 2} y2={card.y + card.h} stroke="#94a3b8" strokeWidth={0.35} strokeDasharray="1.5,1" />
+                  <line x1={card.x + card.w + 2} y1={card.y} x2={card.x + card.w + 2} y2={card.y + card.h} stroke="#94a3b8" strokeWidth={0.35} strokeDasharray="1.5,1" />
+                  <line x1={card.x} y1={card.y - 2} x2={card.x + card.w} y2={card.y - 2} stroke="#94a3b8" strokeWidth={0.35} strokeDasharray="1.5,1" />
+                  <line x1={card.x} y1={card.y + card.h + 2} x2={card.x + card.w} y2={card.y + card.h + 2} stroke="#94a3b8" strokeWidth={0.35} strokeDasharray="1.5,1" />
+                </>}
+              </g>
+            ))}
+            <text x={svgW / 2} y={svgH - 1.5} textAnchor="middle" fontSize={4} fill="#94a3b8">A4 · {cardWidthMm}×{cardHeightMm}mm · {cols}×{rows} grid</text>
+          </svg>
+        </div>
+        {duplex && (
+          <div className="flex-1 space-y-1">
+            <p className="text-[9px] text-slate-400 text-center font-mono uppercase">Back — mirror flip</p>
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full rounded-xl border border-indigo-200 shadow-sm bg-indigo-50/30" style={{ maxHeight: 220 }}>
+              {cards.map((card, i) => (
+                <g key={i}>
+                  <rect x={card.x} y={card.y} width={card.w} height={card.h} rx={2} fill={isBw ? '#f4f4f4' : '#eef2ff'} stroke={cardStroke} strokeWidth={0.8} strokeDasharray="2,1" />
+                  <rect x={card.x + 1} y={card.y + 1} width={card.w - 2} height={card.h - 2} rx={1.5} fill="none" stroke={isBw ? '#d4d4d4' : '#c7d2fe'} strokeWidth={0.5} />
+                  <line x1={card.x + 2} y1={card.y + card.h / 2 - 2} x2={card.x + card.w - 2} y2={card.y + card.h / 2 - 2} stroke={lineClr} strokeWidth={0.8} />
+                  <line x1={card.x + 2} y1={card.y + card.h / 2 + 2} x2={card.x + card.w * 0.7} y2={card.y + card.h / 2 + 2} stroke={lineClr} strokeWidth={0.5} />
+                </g>
+              ))}
+              <text x={svgW / 2} y={svgH - 1.5} textAnchor="middle" fontSize={4} fill="#94a3b8">Back side — duplex aligned print</text>
+            </svg>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2 text-[9px] text-slate-400 font-mono">
+        {cutGuides && <span className="flex items-center gap-1"><span className="inline-block w-4 border-t border-dashed border-slate-400" />cut marks</span>}
+        {enhance && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />auto-enhance on</span>}
+        <span className="ml-auto">{cols}×{rows} layout · {cardsPerSheet} cards/sheet</span>
+      </div>
+    </div>
+  );
+}
+
+function NormalPagesPreview({ selectedPages, duplex, colorMode, copies, fitToPage }: {
+  selectedPages: string; duplex: boolean; colorMode: string; copies: number; fitToPage: string;
+}) {
+  const TOTAL = 12;
+  const parsePages = (val: string): Set<number> => {
+    if (!val || val.trim().toLowerCase() === 'all') return new Set(Array.from({ length: TOTAL }, (_, i) => i + 1));
+    const s = new Set<number>();
+    val.split(',').forEach(part => {
+      const m = part.trim().match(/^(\d+)-(\d+)$/);
+      if (m) { for (let i = parseInt(m[1]); i <= parseInt(m[2]); i++) if (i >= 1 && i <= TOTAL) s.add(i); }
+      else { const n = parseInt(part.trim()); if (!isNaN(n) && n >= 1 && n <= TOTAL) s.add(n); }
+    });
+    return s;
+  };
+  const selected = parsePages(selectedPages);
+  const isBw = colorMode === 'bw' || !colorMode;
+  const sortedSelected = Array.from(selected).sort((a, b) => a - b);
+  const totalSelected = selected.size;
+  const physicalSheets = duplex ? Math.ceil(totalSelected / 2) : totalSelected;
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-600 tracking-tight">Page Selection Preview</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isBw ? 'bg-slate-100 text-slate-600' : 'bg-cyan-100 text-cyan-700'}`}>{isBw ? 'B&W' : '🌈 Color'}</span>
+          {duplex && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">⇄ Duplex</span>}
+          {copies > 1 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">×{copies} copies</span>}
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
+        <div className="grid grid-cols-6 gap-1.5">
+          {Array.from({ length: TOTAL }, (_, i) => {
+            const pg = i + 1;
+            const isSel = selected.has(pg);
+            const idx = sortedSelected.indexOf(pg);
+            const isBack = duplex && isSel && idx % 2 === 1;
+            return (
+              <div key={pg} className={`relative flex flex-col items-center justify-center rounded border aspect-[3/4] text-[8px] font-bold transition-all ${
+                isSel ? isBack ? 'bg-indigo-100 border-indigo-300 text-indigo-600' : 'bg-indigo-500 border-indigo-600 text-white shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-300'
+              }`}>
+                <span>{pg}</span>
+                {isSel && duplex && <span className="absolute bottom-0.5 text-[6px] opacity-60">{isBack ? 'B' : 'F'}</span>}
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono">
+          <span className="text-indigo-600 font-bold">{totalSelected}/{TOTAL} pages</span>
+          <span className="text-slate-500">{physicalSheets} sheet{physicalSheets !== 1 ? 's' : ''}{copies > 1 ? ` × ${copies}` : ''}</span>
+          <span className="text-slate-400 capitalize">{fitToPage} fit</span>
+        </div>
+        {duplex && totalSelected > 0 && (
+          <div className="mt-2 flex items-center gap-2 bg-indigo-50 rounded-lg px-3 py-2">
+            <div className="flex gap-0.5 items-center">
+              {Array.from({ length: Math.min(physicalSheets, 5) }, (_, i) => (
+                <div key={i} className="w-3 h-4 rounded-sm border border-indigo-300 bg-white shadow-sm" style={{ marginLeft: i === 0 ? 0 : -1 }} />
+              ))}
+              {physicalSheets > 5 && <span className="text-[8px] text-indigo-400 ml-1">+{physicalSheets - 5}</span>}
+            </div>
+            <span className="text-[9px] text-indigo-600 font-medium">Front+back on {physicalSheets} sheet{physicalSheets !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1 space-y-1">
+          <p className="text-[9px] text-slate-400 text-center font-mono uppercase">Page Sample</p>
+          <div className={`rounded-xl border p-2.5 space-y-1.5 ${isBw ? 'border-slate-200 bg-white' : 'border-cyan-200 bg-cyan-50/30'}`}>
+            <div className={`h-1.5 rounded-full w-3/4 ${isBw ? 'bg-slate-300' : 'bg-cyan-400'}`} />
+            {[1, 5/6, 1, 4/5, 1].map((w, i) => (
+              <div key={i} className={`h-1 rounded-full ${isBw ? 'bg-slate-100' : 'bg-cyan-100'}`} style={{ width: `${w * 100}%` }} />
+            ))}
+            <div className={`h-4 rounded mt-0.5 ${isBw ? 'bg-slate-50' : 'bg-cyan-50'} border ${isBw ? 'border-slate-100' : 'border-cyan-200'}`} />
+          </div>
+        </div>
+        <div className="flex-1 space-y-1">
+          <p className="text-[9px] text-slate-400 text-center font-mono uppercase">Fit: {fitToPage}</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center" style={{ minHeight: 72 }}>
+            {fitToPage === 'shrink' && (
+              <div className="relative w-full h-14 flex items-center justify-center">
+                <div className="absolute inset-1 border border-dashed border-slate-300 rounded-lg" />
+                <div className={`w-8 h-10 rounded border-2 shadow-sm ${isBw ? 'border-slate-400 bg-slate-100' : 'border-cyan-400 bg-cyan-50'}`} />
+              </div>
+            )}
+            {fitToPage === 'fill' && (
+              <div className={`w-full h-14 rounded-lg border-2 ${isBw ? 'border-slate-400 bg-slate-200' : 'border-cyan-400 bg-cyan-100'}`} />
+            )}
+            {fitToPage === 'crop' && (
+              <div className="relative w-full h-14 overflow-hidden rounded-lg">
+                <div className={`absolute -inset-1.5 rounded border-2 ${isBw ? 'border-slate-400 bg-slate-200' : 'border-cyan-400 bg-cyan-100'}`} />
+                <div className="absolute inset-0 border-2 border-dashed border-rose-400 rounded" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface FolderWatcherTabProps {
   pricing: PricingConfig;
   queuedFiles: PrintFile[];
@@ -1374,274 +1557,203 @@ export default function FolderWatcherTab({
                   </div>
                 </div>
               ) : customSubFolder === 'ID_CARDS' ? (
-                <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-150 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Spooling Print Mode</label>
-                    <select
-                      value={idCardConfig.mode}
-                      onChange={(e) => setIdCardConfig(prev => ({ ...prev, mode: e.target.value }))}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-705 font-bold"
-                    >
-                      <option value="bw">B&W (Grayscale preferred)</option>
-                      <option value="color">Full Dynamic Color</option>
-                    </select>
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">ID Layout Duplex Binding</label>
-                    <div className="flex items-center space-x-2 pt-2">
-                      <input
-                        type="checkbox"
-                        checked={idCardConfig.duplex}
-                        onChange={(e) => setIdCardConfig(prev => ({ ...prev, duplex: e.target.checked }))}
-                        className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                        id="chk-id-duplex"
+                <div className="space-y-4">
+                  {/* Two-column: config left, preview right */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Config column */}
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 text-xs shadow-sm">
+                      <p className="text-[11px] font-bold text-slate-700 border-b border-slate-100 pb-2">Configuration</p>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Print Mode</label>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setIdCardConfig(prev => ({ ...prev, mode: 'bw' }))}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${idCardConfig.mode === 'bw' ? 'bg-slate-800 text-white border-slate-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+                            ⬛ B&W
+                          </button>
+                          <button type="button" onClick={() => setIdCardConfig(prev => ({ ...prev, mode: 'color' }))}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${idCardConfig.mode === 'color' ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-cyan-50'}`}>
+                            🌈 Color
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Cards per A4 Sheet</label>
+                        <select
+                          value={idCardConfig.id_card_layout?.cards_per_sheet || 8}
+                          onChange={(e) => setIdCardConfig(prev => ({ ...prev, id_card_layout: { ...prev.id_card_layout, cards_per_sheet: parseInt(e.target.value) || 8 } }))}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-semibold focus:ring-1 focus:ring-indigo-400 focus:outline-none"
+                        >
+                          <option value="2">2 cards (1×2 large)</option>
+                          <option value="4">4 cards (2×2)</option>
+                          <option value="6">6 cards (2×3)</option>
+                          <option value="8">8 cards (2×4 — standard)</option>
+                          <option value="10">10 cards (2×5)</option>
+                          <option value="12">12 cards (3×4)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Card Size (mm)</label>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <span className="text-[9px] text-slate-400 font-mono">Width</span>
+                            <input type="number" value={idCardConfig.id_card_layout?.card_width_mm || 85.6}
+                              onChange={(e) => setIdCardConfig(prev => ({ ...prev, id_card_layout: { ...prev.id_card_layout, card_width_mm: parseFloat(e.target.value) || 85.6 } }))}
+                              className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 font-mono text-xs mt-0.5 focus:ring-1 focus:ring-indigo-400 focus:outline-none" />
+                          </div>
+                          <div className="flex-1">
+                            <span className="text-[9px] text-slate-400 font-mono">Height</span>
+                            <input type="number" value={idCardConfig.id_card_layout?.card_height_mm || 53.98}
+                              onChange={(e) => setIdCardConfig(prev => ({ ...prev, id_card_layout: { ...prev.id_card_layout, card_height_mm: parseFloat(e.target.value) || 53.98 } }))}
+                              className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 font-mono text-xs mt-0.5 focus:ring-1 focus:ring-indigo-400 focus:outline-none" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Fit Mode</label>
+                        <select value={idCardConfig.id_card_layout?.fit_mode || "fill"}
+                          onChange={(e) => setIdCardConfig(prev => ({ ...prev, id_card_layout: { ...prev.id_card_layout, fit_mode: e.target.value } }))}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:ring-1 focus:ring-indigo-400 focus:outline-none">
+                          <option value="fill">Fill — crop excess</option>
+                          <option value="fit">Fit — white gutters</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-wrap gap-3 pt-1">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={idCardConfig.duplex}
+                            onChange={(e) => setIdCardConfig(prev => ({ ...prev, duplex: e.target.checked }))}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded" id="chk-id-duplex" />
+                          <span className="text-slate-600 font-medium text-[11px]">Duplex (front+back)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={idCardConfig.id_card_layout?.enhance || false}
+                            onChange={(e) => setIdCardConfig(prev => ({ ...prev, id_card_layout: { ...prev.id_card_layout, enhance: e.target.checked } }))}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded" />
+                          <span className="text-slate-600 font-medium text-[11px]">Auto Enhance</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={idCardConfig.id_card_layout?.cut_guides || false}
+                            onChange={(e) => setIdCardConfig(prev => ({ ...prev, id_card_layout: { ...prev.id_card_layout, cut_guides: e.target.checked } }))}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded" />
+                          <span className="text-slate-600 font-medium text-[11px]">Cut Marks</span>
+                        </label>
+                      </div>
+                    </div>
+                    {/* Live preview column */}
+                    <div className="bg-white rounded-xl border border-amber-100 p-4 shadow-sm">
+                      <IdCardSheetPreview
+                        cardsPerSheet={idCardConfig.id_card_layout?.cards_per_sheet || 8}
+                        cardWidthMm={idCardConfig.id_card_layout?.card_width_mm || 85.6}
+                        cardHeightMm={idCardConfig.id_card_layout?.card_height_mm || 53.98}
+                        cutGuides={idCardConfig.id_card_layout?.cut_guides || false}
+                        enhance={idCardConfig.id_card_layout?.enhance || false}
+                        colorMode={idCardConfig.mode || 'bw'}
+                        duplex={idCardConfig.duplex || false}
                       />
-                      <label htmlFor="chk-id-duplex" className="text-slate-600 font-medium">Bilateral Duplex Layout</label>
                     </div>
                   </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Fit Mode Behavior</label>
-                    <select
-                      value={idCardConfig.id_card_layout?.fit_mode || "fill"}
-                      onChange={(e) => setIdCardConfig(prev => ({
-                        ...prev,
-                        id_card_layout: { ...prev.id_card_layout, fit_mode: e.target.value }
-                      }))}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700"
-                    >
-                      <option value="fill">Fill (Crop excess boundaries)</option>
-                      <option value="fit">Fit (Add white gutters)</option>
-                    </select>
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Cards Per Printed A4 Sheet</label>
-                    <input
-                      type="number"
-                      value={idCardConfig.id_card_layout?.cards_per_sheet || 8}
-                      onChange={(e) => setIdCardConfig(prev => ({
-                        ...prev,
-                        id_card_layout: { ...prev.id_card_layout, cards_per_sheet: parseInt(e.target.value) || 8 }
-                      }))}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-mono"
-                    />
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Layout Width x Height dimensions (mm)</label>
-                    <div className="flex space-x-2">
-                      <input
-                        type="number"
-                        placeholder="Width"
-                        value={idCardConfig.id_card_layout?.card_width_mm || 85.6}
-                        onChange={(e) => setIdCardConfig(prev => ({
-                          ...prev,
-                          id_card_layout: { ...prev.id_card_layout, card_width_mm: parseFloat(e.target.value) || 85.6 }
-                        }))}
-                        className="w-1/2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-707 font-mono"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Height"
-                        value={idCardConfig.id_card_layout?.card_height_mm || 53.98}
-                        onChange={(e) => setIdCardConfig(prev => ({
-                          ...prev,
-                          id_card_layout: { ...prev.id_card_layout, card_height_mm: parseFloat(e.target.value) || 53.98 }
-                        }))}
-                        className="w-1/2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-707 font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Image Enhancement (Filters)</label>
-                    <div className="flex flex-wrap gap-4 pt-2">
-                      <label className="flex items-center space-x-1.5">
-                        <input
-                          type="checkbox"
-                          checked={idCardConfig.id_card_layout?.enhance || false}
-                          onChange={(e) => setIdCardConfig(prev => ({
-                            ...prev,
-                            id_card_layout: { ...prev.id_card_layout, enhance: e.target.checked }
-                          }))}
-                          className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                        />
-                        <span className="font-medium text-slate-600">Auto Contrast</span>
-                      </label>
-                      <label className="flex items-center space-x-1.5">
-                        <input
-                          type="checkbox"
-                          checked={idCardConfig.id_card_layout?.cut_guides || false}
-                          onChange={(e) => setIdCardConfig(prev => ({
-                            ...prev,
-                            id_card_layout: { ...prev.id_card_layout, cut_guides: e.target.checked }
-                          }))}
-                          className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                        />
-                        <span className="font-medium text-slate-600">Cut Marks</span>
-                      </label>
-                    </div>
-                  </div>
-                  {/* Upload zone for ID_CARDS */}
-                  <div className="col-span-full">
-                    <label className="relative w-full border-2 border-dashed border-amber-200 rounded-xl py-4 px-4 flex flex-col items-center justify-center gap-1 hover:border-amber-400 hover:bg-amber-50/30 transition-all cursor-pointer bg-white overflow-hidden">
-                      <input
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={(e) => handleCustomOrderUpload(e, 'ID_CARDS', {
-                          job_type: 'id_cards',
-                          mode: idCardConfig.mode,
-                          duplex: idCardConfig.duplex,
-                          id_card_layout: idCardConfig.id_card_layout
-                        })}
-                      />
-                      <Upload className="w-5 h-5 text-amber-500 pointer-events-none" />
-                      <span className="text-[11px] font-bold text-amber-700 pointer-events-none">Upload ID Card Image / PDF</span>
-                      <span className="text-[9px] text-slate-400 pointer-events-none">Will tile {idCardConfig.id_card_layout?.cards_per_sheet || 8} cards per A4 sheet</span>
-                    </label>
-                  </div>
-                  {/* order.json preview for ID_CARDS */}
-                  <div className="col-span-full rounded-lg border border-slate-200 bg-white overflow-hidden">
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border-b border-slate-200">
+                  {/* Upload zone */}
+                  <label className="relative w-full border-2 border-dashed border-amber-200 rounded-xl py-5 px-4 flex flex-col items-center justify-center gap-1.5 hover:border-amber-400 hover:bg-amber-50/30 transition-all cursor-pointer bg-white overflow-hidden group">
+                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={(e) => handleCustomOrderUpload(e, 'ID_CARDS', { job_type: 'id_cards', mode: idCardConfig.mode, duplex: idCardConfig.duplex, id_card_layout: idCardConfig.id_card_layout })} />
+                    <Upload className="w-5 h-5 text-amber-400 group-hover:text-amber-600 pointer-events-none transition-colors" />
+                    <span className="text-[12px] font-bold text-amber-700 pointer-events-none">Upload ID Card Image / PDF</span>
+                    <span className="text-[10px] text-slate-400 pointer-events-none">Tiles {idCardConfig.id_card_layout?.cards_per_sheet || 8} cards per A4 · JPG / PNG / PDF</span>
+                  </label>
+                  {/* order.json preview */}
+                  <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
                       <span className="text-[10px] font-mono font-bold text-slate-600">📄 ID_CARDS / order.json</span>
-                      <span className="text-[9px] text-slate-400 font-mono">auto-generated on save</span>
+                      <span className="text-[9px] text-slate-400 font-mono">auto-written on save</span>
                     </div>
-                    <pre className="text-[9.5px] font-mono text-slate-600 px-3 py-2 leading-5 bg-slate-50/40">{JSON.stringify({
-                      job_type: "id_cards",
-                      mode: idCardConfig.mode,
-                      duplex: idCardConfig.duplex,
-                      id_card_layout: {
-                        cards_per_sheet: idCardConfig.id_card_layout?.cards_per_sheet,
-                        card_width_mm: idCardConfig.id_card_layout?.card_width_mm,
-                        card_height_mm: idCardConfig.id_card_layout?.card_height_mm,
-                        cut_guides: idCardConfig.id_card_layout?.cut_guides,
-                        enhance: idCardConfig.id_card_layout?.enhance,
-                        fit_mode: idCardConfig.id_card_layout?.fit_mode
-                      }
-                    }, null, 2)}</pre>
+                    <pre className="text-[9.5px] font-mono text-slate-600 px-3 py-2 leading-5 bg-white">{JSON.stringify({ job_type: "id_cards", mode: idCardConfig.mode, duplex: idCardConfig.duplex, id_card_layout: { cards_per_sheet: idCardConfig.id_card_layout?.cards_per_sheet, card_width_mm: idCardConfig.id_card_layout?.card_width_mm, card_height_mm: idCardConfig.id_card_layout?.card_height_mm, cut_guides: idCardConfig.id_card_layout?.cut_guides, enhance: idCardConfig.id_card_layout?.enhance, fit_mode: idCardConfig.id_card_layout?.fit_mode } }, null, 2)}</pre>
                   </div>
                 </div>
               ) : (
-                <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-150 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Normal Page Selected Ranges</label>
-                    <input
-                      type="text"
-                      value={normalConfig.selected_pages}
-                      onChange={(e) => setNormalConfig(prev => ({ ...prev, selected_pages: e.target.value }))}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-semibold focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                    />
-                    <span className="text-[10px] text-slate-400">Example: "1-5, 8" or "all" — pages beyond PDF total are auto-skipped</span>
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Duplex bilateral sheets</label>
-                    <div className="flex items-center space-x-2 pt-2">
-                       <input
-                         type="checkbox"
-                         checked={normalConfig.duplex}
-                         onChange={(e) => setNormalConfig(prev => ({ ...prev, duplex: e.target.checked }))}
-                         className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                         id="chk-norm-dup"
-                       />
-                       <label htmlFor="chk-norm-dup" className="text-slate-600 font-medium">Two-sided (bilateral stack render)</label>
+                <div className="space-y-4">
+                  {/* Two-column: config left, preview right */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Config column */}
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 text-xs shadow-sm">
+                      <p className="text-[11px] font-bold text-slate-700 border-b border-slate-100 pb-2">Configuration</p>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Page Range</label>
+                        <input type="text" value={normalConfig.selected_pages}
+                          onChange={(e) => setNormalConfig(prev => ({ ...prev, selected_pages: e.target.value }))}
+                          placeholder='e.g. "all" or "1-5, 8, 10-12"'
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-mono focus:ring-1 focus:ring-indigo-400 focus:outline-none" />
+                        <span className="text-[10px] text-slate-400">Use "all" or ranges like "1-5, 8" — pages beyond total are skipped</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Color Mode</label>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, color_mode: 'bw' }))}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${normalConfig.color_mode === 'bw' || !normalConfig.color_mode ? 'bg-slate-800 text-white border-slate-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+                            ⬛ B&W
+                          </button>
+                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, color_mode: 'color' }))}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${normalConfig.color_mode === 'color' ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-cyan-50'}`}>
+                            🌈 Color
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Fit to Page</label>
+                        <select value={normalConfig.fit_to_page} onChange={(e) => setNormalConfig(prev => ({ ...prev, fit_to_page: e.target.value }))}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:ring-1 focus:ring-indigo-400 focus:outline-none">
+                          <option value="shrink">Shrink — preserve margins</option>
+                          <option value="fill">Fill — stretch to edges</option>
+                          <option value="crop">Crop — cut excess bleed</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-slate-500 font-semibold text-[11px]">Copies</label>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, copies: Math.max(1, (prev.copies || 1) - 1) }))}
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center">−</button>
+                          <span className="flex-1 text-center text-sm font-bold text-slate-700">{normalConfig.copies || 1}</span>
+                          <button type="button" onClick={() => setNormalConfig(prev => ({ ...prev, copies: (prev.copies || 1) + 1 }))}
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center">+</button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-3 pt-1">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={normalConfig.duplex} onChange={(e) => setNormalConfig(prev => ({ ...prev, duplex: e.target.checked }))}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded" id="chk-norm-dup" />
+                          <span className="text-slate-600 font-medium text-[11px]">Duplex (two-sided)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={normalConfig.collate} onChange={(e) => setNormalConfig(prev => ({ ...prev, collate: e.target.checked }))}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded" id="chk-norm-collate" />
+                          <span className="text-slate-600 font-medium text-[11px]">Collate sets</span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Print Color Mode</label>
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setNormalConfig(prev => ({ ...prev, color_mode: 'bw' }))}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                          normalConfig.color_mode === 'bw' || !normalConfig.color_mode
-                            ? 'bg-slate-800 text-white border-slate-700 shadow-sm'
-                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        ⬛ B&amp;W / Monochrome
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNormalConfig(prev => ({ ...prev, color_mode: 'color' }))}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                          normalConfig.color_mode === 'color'
-                            ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm'
-                            : 'bg-white text-slate-500 border-slate-200 hover:bg-cyan-50'
-                        }`}
-                      >
-                        🌈 Full Color
-                      </button>
-                    </div>
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Print Fit to Page</label>
-                    <select
-                      value={normalConfig.fit_to_page}
-                      onChange={(e) => setNormalConfig(prev => ({ ...prev, fit_to_page: e.target.value }))}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-bold"
-                    >
-                      <option value="shrink">Shrink oversized margins (Standard)</option>
-                      <option value="fill">Fill printable area to margins</option>
-                      <option value="crop">Crop excess bleed areas</option>
-                    </select>
-                  </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Document Collating</label>
-                    <div className="flex items-center space-x-2 pt-2">
-                      <input
-                        type="checkbox"
-                        checked={normalConfig.collate}
-                        onChange={(e) => setNormalConfig(prev => ({ ...prev, collate: e.target.checked }))}
-                        className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                        id="chk-norm-collate"
+                    {/* Live preview column */}
+                    <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-sm">
+                      <NormalPagesPreview
+                        selectedPages={normalConfig.selected_pages || 'all'}
+                        duplex={normalConfig.duplex || false}
+                        colorMode={normalConfig.color_mode || 'bw'}
+                        copies={normalConfig.copies || 1}
+                        fitToPage={normalConfig.fit_to_page || 'shrink'}
                       />
-                      <label htmlFor="chk-norm-collate" className="text-slate-600 font-medium">Enable collated sets</label>
                     </div>
                   </div>
-                  <div className="font-sans space-y-1.5 text-left">
-                    <label className="block text-slate-500 font-bold">Copies Count</label>
-                    <input
-                      type="number"
-                      value={normalConfig.copies}
-                      onChange={(e) => setNormalConfig(prev => ({ ...prev, copies: parseInt(e.target.value) || 1 }))}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-mono"
-                    />
-                  </div>
-                  {/* Upload zone for NORMAL_PAGES */}
-                  <div className="col-span-full">
-                    <label className="relative w-full border-2 border-dashed border-indigo-200 rounded-xl py-4 px-4 flex flex-col items-center justify-center gap-1 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer bg-white overflow-hidden">
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={(e) => handleCustomOrderUpload(e, 'NORMAL_PAGES', {
-                          job_type: 'normal_pages',
-                          selected_pages: normalConfig.selected_pages,
-                          duplex: normalConfig.duplex,
-                          color_mode: normalConfig.color_mode || 'bw',
-                          fit_to_page: normalConfig.fit_to_page,
-                          collate: normalConfig.collate,
-                          copies: normalConfig.copies
-                        })}
-                      />
-                      <Upload className="w-5 h-5 text-indigo-400 pointer-events-none" />
-                      <span className="text-[11px] font-bold text-indigo-600 pointer-events-none">Upload PDF / DOCX to Print</span>
-                      <span className="text-[9px] text-slate-400 pointer-events-none">Will print using the settings above</span>
-                    </label>
-                  </div>
-                  {/* order.json preview for NORMAL_PAGES */}
-                  <div className="col-span-full rounded-lg border border-slate-200 bg-white overflow-hidden">
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border-b border-slate-200">
+                  {/* Upload zone */}
+                  <label className="relative w-full border-2 border-dashed border-indigo-200 rounded-xl py-5 px-4 flex flex-col items-center justify-center gap-1.5 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer bg-white overflow-hidden group">
+                    <input type="file" accept=".pdf,.doc,.docx" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={(e) => handleCustomOrderUpload(e, 'NORMAL_PAGES', { job_type: 'normal_pages', selected_pages: normalConfig.selected_pages, duplex: normalConfig.duplex, color_mode: normalConfig.color_mode || 'bw', fit_to_page: normalConfig.fit_to_page, collate: normalConfig.collate, copies: normalConfig.copies })} />
+                    <Upload className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 pointer-events-none transition-colors" />
+                    <span className="text-[12px] font-bold text-indigo-600 pointer-events-none">Upload PDF / DOCX to Print</span>
+                    <span className="text-[10px] text-slate-400 pointer-events-none">Settings above applied automatically · pages: {normalConfig.selected_pages || 'all'}</span>
+                  </label>
+                  {/* order.json */}
+                  <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
                       <span className="text-[10px] font-mono font-bold text-slate-600">📄 NORMAL_PAGES / order.json</span>
-                      <span className="text-[9px] text-slate-400 font-mono">auto-generated on save</span>
+                      <span className="text-[9px] text-slate-400 font-mono">auto-written on save</span>
                     </div>
-                    <pre className="text-[9.5px] font-mono text-slate-600 px-3 py-2 leading-5 bg-slate-50/40">{JSON.stringify({
-                      job_type: "normal_pages",
-                      selected_pages: normalConfig.selected_pages,
-                      duplex: normalConfig.duplex,
-                      color_mode: normalConfig.color_mode || 'bw',
-                      fit_to_page: normalConfig.fit_to_page,
-                      collate: normalConfig.collate,
-                      copies: normalConfig.copies
-                    }, null, 2)}</pre>
+                    <pre className="text-[9.5px] font-mono text-slate-600 px-3 py-2 leading-5 bg-white">{JSON.stringify({ job_type: "normal_pages", selected_pages: normalConfig.selected_pages, duplex: normalConfig.duplex, color_mode: normalConfig.color_mode || 'bw', fit_to_page: normalConfig.fit_to_page, collate: normalConfig.collate, copies: normalConfig.copies }, null, 2)}</pre>
                   </div>
                 </div>
               )}
