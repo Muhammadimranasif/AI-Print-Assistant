@@ -782,7 +782,6 @@ export default function FolderWatcherTab({
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold tracking-tight">{folder.label}</h3>
-                  <p className="text-[10px] text-slate-400 font-normal truncate mt-0.5">{folder.desc}</p>
                 </div>
               </button>
             );
