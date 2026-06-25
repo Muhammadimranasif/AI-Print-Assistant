@@ -7,16 +7,167 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* ── Theme CSS variables ─────────────────────────────────────────────────── */
+
+:root,
+[data-theme="light-dashboard"] {
+  --t-page-bg:       #f8fafc;
+  --t-page-dot:      rgba(148, 163, 184, 0.11);
+  --t-surface:       #ffffff;
+  --t-surface-2:     #f8fafc;
+  --t-surface-3:     #f1f5f9;
+  --t-border:        rgba(226, 232, 240, 0.8);
+  --t-border-2:      #e2e8f0;
+  --t-text-primary:  #1e293b;
+  --t-text-secondary:#64748b;
+  --t-text-muted:    #94a3b8;
+  --t-accent:        #4f46e5;
+  --t-accent-light:  #eef2ff;
+  --t-accent-text:   #4338ca;
+  --t-header-bg:     #0f172a;
+  --t-header-border: #1e293b;
+  --t-header-text:   #e0e7ff;
+  --t-header-sub:    #94a3b8;
+  --t-chip-bg:       rgba(255,255,255,0.06);
+  --t-chip-border:   rgba(255,255,255,0.12);
+  --t-tab-active-bg: #ffffff;
+  --t-tab-active-text: #4338ca;
+  --t-tab-active-border: #4f46e5;
+  --t-tab-text:      #64748b;
+  --t-tab-hover-bg:  rgba(241,245,249,0.5);
+  --t-nav-border:    #e2e8f0;
+  --t-footer-bg:     #ffffff;
+  --t-footer-border: #e2e8f0;
+  --t-footer-text:   #94a3b8;
+  --t-terminal-bg:   #0f172a;
+  --t-terminal-border: #1e293b;
+  --t-status-ok-bg:  rgba(16,185,129,0.15);
+  --t-status-ok-text:#10b981;
+}
+
+[data-theme="dark-terminal"] {
+  --t-page-bg:       #0d1117;
+  --t-page-dot:      rgba(48, 54, 61, 0.6);
+  --t-surface:       #161b22;
+  --t-surface-2:     #1c2128;
+  --t-surface-3:     #21262d;
+  --t-border:        #30363d;
+  --t-border-2:      #21262d;
+  --t-text-primary:  #e6edf3;
+  --t-text-secondary:#8b949e;
+  --t-text-muted:    #6e7681;
+  --t-accent:        #7c3aed;
+  --t-accent-light:  rgba(124,58,237,0.15);
+  --t-accent-text:   #a78bfa;
+  --t-header-bg:     #161b22;
+  --t-header-border: #30363d;
+  --t-header-text:   #e6edf3;
+  --t-header-sub:    #7d8590;
+  --t-chip-bg:       rgba(255,255,255,0.04);
+  --t-chip-border:   #30363d;
+  --t-tab-active-bg: #0d1117;
+  --t-tab-active-text: #a78bfa;
+  --t-tab-active-border: #7c3aed;
+  --t-tab-text:      #8b949e;
+  --t-tab-hover-bg:  rgba(255,255,255,0.04);
+  --t-nav-border:    #30363d;
+  --t-footer-bg:     #161b22;
+  --t-footer-border: #30363d;
+  --t-footer-text:   #6e7681;
+  --t-terminal-bg:   #010409;
+  --t-terminal-border: #30363d;
+  --t-status-ok-bg:  rgba(63,185,80,0.15);
+  --t-status-ok-text:#3fb950;
+}
+
+[data-theme="split-panel"] {
+  --t-page-bg:       #f1f5f9;
+  --t-page-dot:      rgba(100, 116, 139, 0.10);
+  --t-surface:       #ffffff;
+  --t-surface-2:     #f8fafc;
+  --t-surface-3:     #f1f5f9;
+  --t-border:        rgba(226, 232, 240, 0.9);
+  --t-border-2:      #e2e8f0;
+  --t-text-primary:  #0f172a;
+  --t-text-secondary:#475569;
+  --t-text-muted:    #94a3b8;
+  --t-accent:        #6366f1;
+  --t-accent-light:  #eef2ff;
+  --t-accent-text:   #4f46e5;
+  --t-header-bg:     #1e1b4b;
+  --t-header-border: #312e81;
+  --t-header-text:   #e0e7ff;
+  --t-header-sub:    #818cf8;
+  --t-chip-bg:       rgba(255,255,255,0.08);
+  --t-chip-border:   rgba(255,255,255,0.15);
+  --t-tab-active-bg: #1e1b4b;
+  --t-tab-active-text: #a5b4fc;
+  --t-tab-active-border: #6366f1;
+  --t-tab-text:      #64748b;
+  --t-tab-hover-bg:  rgba(99,102,241,0.06);
+  --t-nav-border:    #312e81;
+  --t-footer-bg:     #ffffff;
+  --t-footer-border: #e2e8f0;
+  --t-footer-text:   #94a3b8;
+  --t-terminal-bg:   #0f0f1a;
+  --t-terminal-border: #1e1b4b;
+  --t-status-ok-bg:  rgba(99,102,241,0.15);
+  --t-status-ok-text:#6366f1;
+}
+
+/* ── Structural theme overrides (header, nav, footer, page bg) ───────────── */
+
 body {
   font-family: var(--font-sans);
-  background-color: #f8fafc;
-  background-image: 
-    /* Soft base ambient top center flow */
-    radial-gradient(circle at 50% 0%, rgba(243, 244, 246, 0.96) 0%, rgba(248, 250, 252, 1) 100%),
-    /* Micro coordinate grid dots for high-fidelity technical UI */
-    radial-gradient(rgba(148, 163, 184, 0.11) 1.2px, transparent 1px);
+  background-color: var(--t-page-bg);
+  background-image:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--t-page-bg) 96%, transparent) 0%, var(--t-page-bg) 100%),
+    radial-gradient(var(--t-page-dot) 1.2px, transparent 1px);
   background-size: 100% 100%, 24px 24px;
   background-attachment: fixed;
+  transition: background-color 0.25s ease;
+}
+
+/* App shell structural elements */
+.aipa-header {
+  background: var(--t-header-bg) !important;
+  border-color: var(--t-header-border) !important;
+}
+
+.aipa-header-title { color: var(--t-header-text) !important; }
+.aipa-header-sub   { color: var(--t-header-sub) !important; }
+
+.aipa-chip {
+  background: var(--t-chip-bg) !important;
+  border-color: var(--t-chip-border) !important;
+}
+
+.aipa-nav {
+  border-color: var(--t-nav-border) !important;
+}
+
+.aipa-tab {
+  color: var(--t-tab-text) !important;
+}
+.aipa-tab:hover {
+  background: var(--t-tab-hover-bg) !important;
+  color: var(--t-text-primary) !important;
+}
+.aipa-tab-active {
+  background: var(--t-tab-active-bg) !important;
+  color: var(--t-tab-active-text) !important;
+  border-bottom-color: var(--t-tab-active-border) !important;
+}
+
+.aipa-footer {
+  background: var(--t-footer-bg) !important;
+  border-color: var(--t-footer-border) !important;
+  color: var(--t-footer-text) !important;
+}
+
+.aipa-terminal {
+  background: var(--t-terminal-bg) !important;
+  border-color: var(--t-terminal-border) !important;
 }
 
 /* Scrollbar behaviors */

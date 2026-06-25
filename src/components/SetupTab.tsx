@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { SystemConfig, SetupStatus } from '../types';
-import { Save, RefreshCw, CheckCircle, AlertTriangle, ShieldCheck, HelpCircle, HardDrive, Printer, Settings, Search, Wifi } from 'lucide-react';
+import { Save, RefreshCw, CheckCircle, AlertTriangle, ShieldCheck, HelpCircle, HardDrive, Printer, Settings, Search, Wifi, Palette } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { THEMES } from '../themes';
+import { CheckForUpdatesButton } from './UpdateToast';
 
 interface SetupTabProps {
   config: SystemConfig;
@@ -14,6 +17,7 @@ interface SetupTabProps {
 export default function SetupTab({ config, status, onSaveConfig, onRunDiagnostics, isDiagnosing, onUpdatePrinterOnline }: SetupTabProps) {
   const [localConfig, setLocalConfig] = useState<SystemConfig>({ ...config });
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   // Ping verification socket states
   const [isPinging, setIsPinging] = useState(false);
@@ -529,8 +533,64 @@ export default function SetupTab({ config, status, onSaveConfig, onRunDiagnostic
         </div>
       </div>
 
-      {/* Right Column: Setup Checker & Diagnostics */}
+      {/* Right Column: Theme Switcher + Setup Checker & Diagnostics */}
       <div className="space-y-6">
+
+        {/* ── UI Theme Switcher ── */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-slate-100">
+            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+              <Palette className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">UI Theme</h2>
+              <p className="text-[10px] text-slate-400">Switch the app appearance. Saved automatically.</p>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {THEMES.map(t => {
+              const isActive = theme === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTheme(t.id)}
+                  className={`w-full text-left flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                    isActive
+                      ? 'border-indigo-500 bg-indigo-50/40 ring-1 ring-indigo-500/20'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  {/* Mini colour swatch */}
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-slate-200 flex flex-col">
+                    <div className="flex-1" style={{ background: t.previewHeader }} />
+                    <div className="flex-1 flex">
+                      <div className="flex-1" style={{ background: t.previewSurface }} />
+                      <div className="w-3" style={{ background: t.previewBg }} />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-xs font-semibold truncate ${isActive ? 'text-indigo-700' : 'text-slate-700'}`}>
+                      {t.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 truncate">{t.description}</div>
+                  </div>
+
+                  {isActive && (
+                    <CheckCircle className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-[10px] text-slate-400 mt-3 text-center">
+            More themes can be added in <code className="font-mono">src/themes.ts</code>
+          </p>
+        </div>
+
         <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm h-full flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
             <div className="flex items-center space-x-2">
@@ -655,6 +715,14 @@ export default function SetupTab({ config, status, onSaveConfig, onRunDiagnostic
             <p className="text-[10px] text-slate-400 mt-2 text-center flex items-center justify-center">
               <HelpCircle className="w-3.5 h-3.5 mr-1" /> Bound to user port 3000 diagnostics standard.
             </p>
+
+            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700">App Updates</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Auto-checks every 60s when running</p>
+              </div>
+              <CheckForUpdatesButton />
+            </div>
           </div>
         </div>
       </div>

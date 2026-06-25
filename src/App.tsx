@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from './context/ThemeContext';
 import { 
   SystemConfig, 
   SetupStatus, 
@@ -44,6 +45,8 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const { theme } = useTheme();
+
   // Load State from LocalStorage or default
   const [config, setConfig] = useState<SystemConfig>(() => {
     const saved = localStorage.getItem('aipa_config');
@@ -1161,7 +1164,7 @@ export default function App() {
   const isExpiredAndLocked = license.licenseEnabled && license.license.status === 'expired';
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-800 flex flex-col justify-between font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-transparent text-slate-800 flex flex-col justify-between font-sans relative overflow-x-hidden" data-theme={theme}>
       
       {/* Premium ambient light drift blobs */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-200/20 rounded-full filter blur-[100px] pointer-events-none -translate-y-1/2" />
@@ -1226,16 +1229,16 @@ export default function App() {
       <div className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
         
         {/* Top App Header bar */}
-        <header className="bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4.5 text-white flex flex-col md:flex-row items-center justify-between shadow-2xl space-y-4 md:space-y-0 relative select-none">
+        <header className="aipa-header bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4.5 text-white flex flex-col md:flex-row items-center justify-between shadow-2xl space-y-4 md:space-y-0 relative select-none">
           <div className="flex items-center space-x-3.5 text-left">
             <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-md">
               <LayoutGrid className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-tight text-indigo-50 font-display">
+              <h1 className="aipa-header-title text-sm font-bold tracking-tight text-indigo-50 font-display">
                 {license.customer.shopName || 'AI Print Assistant'}
               </h1>
-              <p className="text-[10.5px] text-slate-400 font-mono flex items-center space-x-2 mt-0.5">
+              <p className="aipa-header-sub text-[10.5px] text-slate-400 font-mono flex items-center space-x-2 mt-0.5">
                 <span className="text-indigo-400 font-semibold">{license.customer.ownerName || 'Print Management System'}</span>
                 <span>•</span>
                 <span>{license.customer.location || 'v1.0'}</span>
@@ -1246,19 +1249,19 @@ export default function App() {
           {/* Active status indicators bento */}
           <div className="flex flex-wrap items-center justify-center gap-3 font-mono text-[9.5px]">
             {/* Sumatra indicator */}
-            <div className="bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
+            <div className="aipa-chip bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${setupStatus.sumatraPdfDetected ? 'bg-emerald-500' : 'bg-rose-500 animate-ping'}`} />
               <span className="text-slate-450 uppercase">SUMATRA: {setupStatus.sumatraPdfDetected ? 'OK' : 'ERR'}</span>
             </div>
 
             {/* Watcher daemon status indicator */}
-            <div className="bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
+            <div className="aipa-chip bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${isDaemonActive ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
               <span className="text-slate-450 uppercase">DAEMON: {isDaemonActive ? 'ACTIVE' : 'STANDBY'}</span>
             </div>
 
             {/* License Mode */}
-            <div className="bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
+            <div className="aipa-chip bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center space-x-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${license.licenseEnabled ? 'bg-indigo-400' : 'bg-amber-400'}`} />
               <span className="text-indigo-400 font-bold uppercase">{license.licenseEnabled ? 'ENFORCED' : 'DEV_OK'}</span>
             </div>
@@ -1266,62 +1269,27 @@ export default function App() {
         </header>
 
         {/* Bento Tabs Nav Navigation menu */}
-        <nav className="flex flex-wrap border-b border-slate-200 gap-1.5 select-none">
-          <button
-            onClick={() => setActiveTab('watcher')}
-            className={`px-4.5 py-3 text-xs font-semibold rounded-t-xl transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
-              activeTab === 'watcher'
-                ? 'bg-white border-indigo-600 text-indigo-700 font-bold shadow-sm'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
-            }`}
-          >
-            <FolderSync className="w-4 h-4" />
-            <span>Folder Watcher Spools</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('idcard')}
-            className={`px-4.5 py-3 text-xs font-semibold rounded-t-xl transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
-              activeTab === 'idcard'
-                ? 'bg-white border-indigo-600 text-indigo-700 font-bold shadow-sm'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>ID Card Studio</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('passport')}
-            className={`px-4.5 py-3 text-xs font-semibold rounded-t-xl transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
-              activeTab === 'passport'
-                ? 'bg-white border-indigo-600 text-indigo-700 font-bold shadow-sm'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Passport Studio</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('config')}
-            className={`px-4.5 py-3 text-xs font-semibold rounded-t-xl transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
-              activeTab === 'config'
-                ? 'bg-white border-indigo-600 text-indigo-700 font-bold shadow-sm'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Setup & Bindings</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('license')}
-            className={`px-4.5 py-3 text-xs font-semibold rounded-t-xl transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
-              activeTab === 'license'
-                ? 'bg-white border-indigo-600 text-indigo-700 font-bold shadow-sm'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
-            }`}
-          >
-            <Key className="w-4 h-4" />
-            <span>Licenses Key Admin</span>
-          </button>
+        <nav className="aipa-nav flex flex-wrap border-b border-slate-200 gap-1.5 select-none">
+          {[
+            { key: 'watcher', icon: <FolderSync className="w-4 h-4" />, label: 'Folder Watcher Spools' },
+            { key: 'idcard',  icon: <Layers className="w-4 h-4" />,     label: 'ID Card Studio' },
+            { key: 'passport',icon: <Sparkles className="w-4 h-4" />,   label: 'Passport Studio' },
+            { key: 'config',  icon: <Settings className="w-4 h-4" />,   label: 'Setup & Bindings' },
+            { key: 'license', icon: <Key className="w-4 h-4" />,        label: 'Licenses Key Admin' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`aipa-tab px-4.5 py-3 text-xs font-semibold rounded-t-xl transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
+                activeTab === tab.key
+                  ? 'aipa-tab-active bg-white border-indigo-600 text-indigo-700 font-bold shadow-sm'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </nav>
 
         {/* Selected Tabs View window container */}
@@ -1398,7 +1366,7 @@ export default function App() {
       </div>
 
       {/* Footer credits bar */}
-      <footer className="py-5 border-t border-slate-200 text-center text-[11px] text-slate-400 font-medium select-none bg-white">
+      <footer className="aipa-footer py-5 border-t border-slate-200 text-center text-[11px] text-slate-400 font-medium select-none bg-white">
         <span>© 2026 AI Print Assistant Project • Engineered with absolute scope discipline and robust TypeScript bindings</span>
       </footer>
 

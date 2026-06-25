@@ -1,7 +1,9 @@
 {
   "name": "claude-print-assistant",
+  "description": "AI-powered print management assistant for print shops",
+  "author": "Muhammadimranasif",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "main": "main.js",
   "scripts": {
@@ -45,7 +47,7 @@
     "productName": "AI Print Assistant",
     "copyright": "Copyright © 2026 AI Print Assistant",
     "directories": {
-      "output": "../User Application"
+      "output": "builds/v${version}"
     },
     "files": [
       "dist/**/*",
@@ -55,24 +57,20 @@
       "assets/**/*"
     ],
     "extraResources": [],
+    "artifactName": "AI-Print-Assistant-Setup-${version}.${ext}",
     "win": {
       "target": [
         {
           "target": "nsis",
           "arch": ["x64"]
         }
-      ],
-      "icon": "assets/icon.ico",
-      "artifactName": "AI-Print-Assistant-Setup-${version}.${ext}",
-      "publisherName": "AI Print Assistant"
+      ]
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "AI Print Assistant"
