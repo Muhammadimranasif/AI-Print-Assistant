@@ -446,77 +446,128 @@ function PrintPreviewCanvas({ file, pageNumber, zoom, margin }: PrintPreviewCanv
 
 function PassportBgCanvas({ imageUrl, bgColor }: { imageUrl: string; bgColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [replacedPct, setReplacedPct] = React.useState<number | null>(null);
+  const [status, setStatus] = React.useState<'idle' | 'processing' | 'done' | 'error'>('idle');
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !imageUrl) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
+    setStatus('processing');
+    setReplacedPct(null);
 
     const img = new Image();
+    img.crossOrigin = 'anonymous'; // required so getImageData doesn't throw for blob/data URLs
+
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
+      // Scale down to avoid memory issues on large photos
+      const MAX_DIM = 900;
+      const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
 
-      if (bgColor === 'keep') return;
+      if (bgColor === 'keep') { setStatus('done'); return; }
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let imageData: ImageData;
+      try {
+        imageData = ctx.getImageData(0, 0, w, h);
+      } catch {
+        setStatus('error');
+        return;
+      }
       const data = imageData.data;
-      const w = canvas.width;
-      const h = canvas.height;
 
-      // Sample background color from edge pixels
-      const samples = [
-        [0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1],
-        [Math.floor(w / 2), 0], [0, Math.floor(h / 2)],
-        [w - 1, Math.floor(h / 2)], [Math.floor(w / 2), h - 1],
-      ];
-      let sr = 0, sg = 0, sb = 0;
-      samples.forEach(([cx, cy]) => {
-        const i = (cy * w + cx) * 4;
-        sr += data[i]; sg += data[i + 1]; sb += data[i + 2];
-      });
-      sr = Math.round(sr / samples.length);
-      sg = Math.round(sg / samples.length);
-      sb = Math.round(sb / samples.length);
+      // Target replacement color
+      let tr = 255, tg = 255, tb = 255; // white
+      if (bgColor === 'blue')  { tr = 0;  tg = 102; tb = 204; } // passport blue #0066CC
+      if (bgColor === 'black') { tr = 15; tg = 15;  tb = 15;  }
 
-      // Replacement color
-      let tr = 255, tg = 255, tb = 255;
-      if (bgColor === 'blue')  { tr = 80; tg = 120; tb = 220; }
-      if (bgColor === 'black') { tr = 0; tg = 0; tb = 0; }
+      // Sample ALL border pixels to get a robust median background color
+      const rVals: number[] = [], gVals: number[] = [], bVals: number[] = [];
+      for (let x = 0; x < w; x++) {
+        const t = (0 * w + x) * 4, bot = ((h - 1) * w + x) * 4;
+        rVals.push(data[t], data[bot]); gVals.push(data[t+1], data[bot+1]); bVals.push(data[t+2], data[bot+2]);
+      }
+      for (let y = 1; y < h - 1; y++) {
+        const l = (y * w) * 4, r = (y * w + w - 1) * 4;
+        rVals.push(data[l], data[r]); gVals.push(data[l+1], data[r+1]); bVals.push(data[l+2], data[r+2]);
+      }
+      const med = (arr: number[]) => { arr.sort((a, b) => a - b); return arr[Math.floor(arr.length / 2)]; };
+      const bgR = med(rVals), bgG = med(gVals), bgB = med(bVals);
 
-      const tolerance = 65;
-      const visited = new Uint8Array(w * h);
+      // Tolerance: higher for light/white backgrounds, lower for dark/colored ones
+      const bgLightness = (bgR + bgG + bgB) / 3;
+      const isBgLight = bgLightness > 170;
+      const tolerance = isBgLight ? 80 : 60;
+
+      // Flood-fill seeded from every border pixel simultaneously
+      const totalPixels = w * h;
+      const visited = new Uint8Array(totalPixels);
       const stack: number[] = [];
-      samples.forEach(([cx, cy]) => stack.push(cy * w + cx));
+      for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x); }
+      for (let y = 1; y < h - 1; y++) { stack.push(y * w); stack.push(y * w + w - 1); }
 
+      let replaced = 0;
       while (stack.length > 0) {
         const idx = stack.pop()!;
         if (visited[idx]) continue;
         visited[idx] = 1;
         const pi = idx * 4;
-        const dr = data[pi] - sr, dg = data[pi + 1] - sg, db = data[pi + 2] - sb;
-        if (Math.sqrt(dr * dr + dg * dg + db * db) > tolerance) continue;
-        data[pi] = tr; data[pi + 1] = tg; data[pi + 2] = tb; data[pi + 3] = 255;
+        const dr = data[pi] - bgR, dg = data[pi+1] - bgG, db = data[pi+2] - bgB;
+        if (Math.sqrt(dr*dr + dg*dg + db*db) > tolerance) continue;
+        data[pi] = tr; data[pi+1] = tg; data[pi+2] = tb; data[pi+3] = 255;
+        replaced++;
         const x = idx % w, y = Math.floor(idx / w);
-        if (x > 0) stack.push(idx - 1);
+        if (x > 0)     stack.push(idx - 1);
         if (x < w - 1) stack.push(idx + 1);
-        if (y > 0) stack.push(idx - w);
+        if (y > 0)     stack.push(idx - w);
         if (y < h - 1) stack.push(idx + w);
       }
 
       ctx.putImageData(imageData, 0, 0);
+      setReplacedPct(Math.round((replaced / totalPixels) * 100));
+      setStatus('done');
     };
+
+    img.onerror = () => {
+      // Fallback: draw a placeholder — likely a CORS-blocked remote URL
+      canvas.width = 200; canvas.height = 260;
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, 200, 260);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Upload a local photo', 100, 120);
+      ctx.fillText('to see preview', 100, 138);
+      setStatus('error');
+    };
+
     img.src = imageUrl;
   }, [imageUrl, bgColor]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full max-h-52 object-contain rounded-xl border border-slate-200 shadow-sm"
-      style={{ imageRendering: 'auto' }}
-    />
+    <div className="space-y-1.5">
+      <canvas
+        ref={canvasRef}
+        className="w-full max-h-52 object-contain rounded-xl border border-slate-200 shadow-sm"
+        style={{ imageRendering: 'auto' }}
+      />
+      {status === 'processing' && (
+        <p className="text-[9px] text-slate-400 font-mono text-center">Processing background...</p>
+      )}
+      {status === 'done' && replacedPct !== null && bgColor !== 'keep' && (
+        <p className="text-[9px] text-emerald-600 font-mono text-center">
+          ✓ {replacedPct}% of pixels replaced → <span className="font-bold uppercase">{bgColor}</span>
+        </p>
+      )}
+      {status === 'error' && (
+        <p className="text-[9px] text-amber-500 font-mono text-center">Upload a photo from your PC to preview</p>
+      )}
+    </div>
   );
 }
 

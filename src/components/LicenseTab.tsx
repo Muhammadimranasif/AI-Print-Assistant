@@ -12,13 +12,13 @@ interface LicenseTabProps {
 export default function LicenseTab({ license, onUpdateLicense, onLogMessage }: LicenseTabProps) {
   const [localLicense, setLocalLicense] = useState<LicenseInfo>({ ...license });
   const [adminMode, setAdminMode] = useState<boolean>(false);
-  const [genCustId, setGenCustId] = useState<string>('API-TARIQ-001');
-  const [genShopName, setGenShopName] = useState<string>("Tariq Bhai Print'O");
-  const [genOwnerName, setGenOwnerName] = useState<string>('Tariq Shop');
-  const [genPhone, setGenPhone] = useState<string>('03359677129');
-  const [genLocation, setGenLocation] = useState<string>('Hangu');
+  const [genCustId, setGenCustId] = useState<string>('AIPA-ROSHAN-001');
+  const [genShopName, setGenShopName] = useState<string>('Roshan Digital Print Studio');
+  const [genOwnerName, setGenOwnerName] = useState<string>('Muhammad Roshan');
+  const [genPhone, setGenPhone] = useState<string>('0300-0000000');
+  const [genLocation, setGenLocation] = useState<string>('Dubai, UAE');
   const [genMode, setGenMode] = useState<string>('paid_monthly');
-  const [genExpiry, setGenExpiry] = useState<string>('2026-06-28');
+  const [genExpiry, setGenExpiry] = useState<string>('2026-12-31');
   const [genSignature, setGenSignature] = useState<string>('5sq2mEJrBoEPfetJ16YOyYgDkSbuWVaMU3UAic+xXHJpP7mlLnJrwxqdwEw4cpV815xWM4soVyrfJZsdpv84Dg==');
 
   const triggerUpdate = (updated: LicenseInfo) => {
@@ -40,7 +40,7 @@ export default function LicenseTab({ license, onUpdateLicense, onLogMessage }: L
   };
 
   const handleExpiryChange = (date: string) => {
-    const today = new Date('2026-06-11');
+    const today = new Date();
     const expDate = new Date(date);
     let statusVal: any = 'active';
 
@@ -82,7 +82,7 @@ export default function LicenseTab({ license, onUpdateLicense, onLogMessage }: L
 
     setGenSignature(randomSig);
 
-    const today = new Date('2026-06-11');
+    const today = new Date();
     const exp = new Date(genExpiry);
     let statusVal: any = 'active';
     if (exp < today) {
@@ -296,6 +296,19 @@ export default function LicenseTab({ license, onUpdateLicense, onLogMessage }: L
                   type="text"
                   value={genShopName}
                   onChange={(e) => setGenShopName(e.target.value)}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-slate-700 outline-none transition-all"
+                />
+              </div>
+
+              {/* Owner Name */}
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  Owner Name
+                </label>
+                <input
+                  type="text"
+                  value={genOwnerName}
+                  onChange={(e) => setGenOwnerName(e.target.value)}
                   className="w-full text-xs bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-slate-700 outline-none transition-all"
                 />
               </div>

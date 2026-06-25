@@ -251,7 +251,7 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('aipa_license', JSON.stringify(license));
     // Determine status bounds dynamically
-    const today = new Date('2026-06-11');
+    const today = new Date();
     const expiry = new Date(license.license.licenseExpiryDate);
     if (expiry < today && license.licenseEnabled) {
       if (license.license.status !== 'expired') {
@@ -518,7 +518,23 @@ export default function App() {
     };
 
     setQueuedFiles(prev => [...prev, newFile]);
-    addLogMessage(`File deposited in watch directory. Path: ./${folderName}/${file.name} (${sizeStr})`, 'success');
+
+    // Physically copy the file into the OneDrive watch folder so the daemon picks it up
+    const nodeCopy = getNodeEnv();
+    if (nodeCopy && originalPath) {
+      try {
+        const watchDir = "C:\\Users\\Roshan\\OneDrive\\AI_Print_Assistant";
+        const destDir = nodeCopy.pathModule.join(watchDir, folderName);
+        if (!nodeCopy.fs.existsSync(destDir)) nodeCopy.fs.mkdirSync(destDir, { recursive: true });
+        const destPath = nodeCopy.pathModule.join(destDir, file.name);
+        nodeCopy.fs.copyFileSync(originalPath, destPath);
+        addLogMessage(`File copied to watch folder: ${folderName}/${file.name} (${sizeStr}) — path: ${destPath}`, 'success');
+      } catch (copyErr) {
+        addLogMessage(`File queued (UI). Could not auto-copy to OneDrive watch dir: ${(copyErr as any).message}`, 'warning');
+      }
+    } else {
+      addLogMessage(`File deposited in watch directory. Path: ./${folderName}/${file.name} (${sizeStr})`, 'success');
+    }
 
     // Audit actual page counts asynchronously if it is a standard PDF
     if (isPdf) {

@@ -3,7 +3,7 @@
   "description": "AI-powered print management assistant for print shops",
   "author": "Muhammadimranasif",
   "private": true,
-  "version": "1.1.5",
+  "version": "1.1.6",
   "type": "module",
   "main": "main.js",
   "scripts": {
